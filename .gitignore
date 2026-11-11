@@ -1,0 +1,26 @@
+# Unity
+/[Ll]ibrary/
+/[Tt]emp/
+/[Oo]bj/
+/[Bb]uild/
+/[Bb]uilds/
+/[Ll]ogs/
+/[Uu]ser[Ss]ettings/
+/[Mm]emoryCaptures/
+/.utmp/
+*.csproj
+*.sln
+*.user
+*.pidb
+*.booproj
+*.apk
+*.aab
+*.log
+# local config and secrets
+.env
+.env.*
+.claude/
+# stray files
+/Survival Fable 62Source*
+*.blend1
+Source/Downloads/

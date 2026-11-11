@@ -1,0 +1,12 @@
+var gm = LastShore.GameManager.I; var inv = gm.Inv; var p = gm.Player.transform;
+inv.Add("axe", 1); inv.Add("stick", 6); inv.Add("stone", 6); inv.Add("meat_raw", 2); inv.Add("coconut", 2); inv.Add("spear", 1);
+gm.Quests.Notify("pickup", "stick");
+gm.Interaction.Consume(System.Array.FindIndex(inv.Slots, s => s.id == "coconut"));
+Vector3 f = LastShore.World.OnGround(p.position + p.forward * 3.5f);
+gm.SpawnStructure("Campfire", f, 0); gm.Quests.Notify("place", "Campfire");
+gm.SpawnStructure("Shelter", LastShore.World.OnGround(p.position + p.forward * 6f + p.right * 3f), p.eulerAngles.y + 200); gm.Quests.Notify("place", "Shelter");
+var boar = UnityEngine.Object.Instantiate(Resources.Load<GameObject>("Prefabs/Boar"), LastShore.World.OnGround(p.position + p.forward * 7f - p.right * 3f), Quaternion.identity);
+boar.GetComponent<LastShore.Animal>().Home = boar.transform.position;
+gm.Sky.TimeOfDay = 0.45f; gm.Interaction.Select(0);
+gm.SaveGame();
+Debug.Log("T2 stage=" + gm.Quests.Stage + " thirst=" + gm.Vitals.Thirst + " placed ok");

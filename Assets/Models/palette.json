@@ -1,0 +1,542 @@
+{
+ "BarkPalm": {
+  "hex": "#8f6f4e",
+  "rough": 0.85,
+  "double": false,
+  "emit": 0.0
+ },
+ "Bark": {
+  "hex": "#5e4532",
+  "rough": 0.85,
+  "double": false,
+  "emit": 0.0
+ },
+ "Wood": {
+  "hex": "#a07a4c",
+  "rough": 0.85,
+  "double": false,
+  "emit": 0.0
+ },
+ "WoodDark": {
+  "hex": "#6c4d2f",
+  "rough": 0.85,
+  "double": false,
+  "emit": 0.0
+ },
+ "WoodLight": {
+  "hex": "#cda873",
+  "rough": 0.85,
+  "double": false,
+  "emit": 0.0
+ },
+ "LeafPalm": {
+  "hex": "#4f9d3c",
+  "rough": 0.85,
+  "double": true,
+  "emit": 0.0
+ },
+ "Leaf": {
+  "hex": "#3f8f3e",
+  "rough": 0.85,
+  "double": false,
+  "emit": 0.0
+ },
+ "LeafDark": {
+  "hex": "#2c6a34",
+  "rough": 0.85,
+  "double": false,
+  "emit": 0.0
+ },
+ "LeafLight": {
+  "hex": "#84c44e",
+  "rough": 0.85,
+  "double": false,
+  "emit": 0.0
+ },
+ "Thatch": {
+  "hex": "#a9a14e",
+  "rough": 0.85,
+  "double": true,
+  "emit": 0.0
+ },
+ "Blade": {
+  "hex": "#6fb04a",
+  "rough": 0.85,
+  "double": true,
+  "emit": 0.0
+ },
+ "Stone": {
+  "hex": "#8c8f93",
+  "rough": 0.85,
+  "double": false,
+  "emit": 0.0
+ },
+ "StoneDark": {
+  "hex": "#5d6166",
+  "rough": 0.85,
+  "double": false,
+  "emit": 0.0
+ },
+ "StoneLight": {
+  "hex": "#b5b5af",
+  "rough": 0.85,
+  "double": false,
+  "emit": 0.0
+ },
+ "Flint": {
+  "hex": "#353941",
+  "rough": 0.5,
+  "double": false,
+  "emit": 0.0
+ },
+ "Coconut": {
+  "hex": "#6d4b2f",
+  "rough": 0.85,
+  "double": false,
+  "emit": 0.0
+ },
+ "CoconutGreen": {
+  "hex": "#86b354",
+  "rough": 0.85,
+  "double": false,
+  "emit": 0.0
+ },
+ "Berry": {
+  "hex": "#cf2740",
+  "rough": 0.4,
+  "double": false,
+  "emit": 0.0
+ },
+ "MushCap": {
+  "hex": "#d68f55",
+  "rough": 0.85,
+  "double": false,
+  "emit": 0.0
+ },
+ "MushStem": {
+  "hex": "#efe6d0",
+  "rough": 0.85,
+  "double": false,
+  "emit": 0.0
+ },
+ "Rope": {
+  "hex": "#c9ae7b",
+  "rough": 0.85,
+  "double": false,
+  "emit": 0.0
+ },
+ "Canvas": {
+  "hex": "#ece3ca",
+  "rough": 0.85,
+  "double": true,
+  "emit": 0.0
+ },
+ "Paper": {
+  "hex": "#f0e6c9",
+  "rough": 0.85,
+  "double": true,
+  "emit": 0.0
+ },
+ "Ink": {
+  "hex": "#4b4135",
+  "rough": 0.85,
+  "double": false,
+  "emit": 0.0
+ },
+ "MeatRaw": {
+  "hex": "#d9646a",
+  "rough": 0.5,
+  "double": false,
+  "emit": 0.0
+ },
+ "MeatFat": {
+  "hex": "#f3d8cb",
+  "rough": 0.85,
+  "double": false,
+  "emit": 0.0
+ },
+ "MeatCooked": {
+  "hex": "#8d4d2b",
+  "rough": 0.85,
+  "double": false,
+  "emit": 0.0
+ },
+ "Bone": {
+  "hex": "#efe8d8",
+  "rough": 0.85,
+  "double": false,
+  "emit": 0.0
+ },
+ "Boar": {
+  "hex": "#4d3c31",
+  "rough": 0.85,
+  "double": false,
+  "emit": 0.0
+ },
+ "BoarDark": {
+  "hex": "#2f2520",
+  "rough": 0.85,
+  "double": false,
+  "emit": 0.0
+ },
+ "Tusk": {
+  "hex": "#efe8d0",
+  "rough": 0.85,
+  "double": false,
+  "emit": 0.0
+ },
+ "Crab": {
+  "hex": "#dc5a30",
+  "rough": 0.5,
+  "double": false,
+  "emit": 0.0
+ },
+ "CrabDark": {
+  "hex": "#a93c1f",
+  "rough": 0.85,
+  "double": false,
+  "emit": 0.0
+ },
+ "Gull": {
+  "hex": "#f3f3f0",
+  "rough": 0.85,
+  "double": false,
+  "emit": 0.0
+ },
+ "GullGrey": {
+  "hex": "#9aa4ae",
+  "rough": 0.85,
+  "double": false,
+  "emit": 0.0
+ },
+ "Beak": {
+  "hex": "#e9a63b",
+  "rough": 0.85,
+  "double": false,
+  "emit": 0.0
+ },
+ "Fish": {
+  "hex": "#6aa6c8",
+  "rough": 0.4,
+  "double": false,
+  "emit": 0.0
+ },
+ "FishBelly": {
+  "hex": "#e0eaee",
+  "rough": 0.4,
+  "double": false,
+  "emit": 0.0
+ },
+ "FishCooked": {
+  "hex": "#b9793f",
+  "rough": 0.85,
+  "double": false,
+  "emit": 0.0
+ },
+ "Hull": {
+  "hex": "#ebe8e1",
+  "rough": 0.5,
+  "double": false,
+  "emit": 0.0
+ },
+ "HullStripe": {
+  "hex": "#1f507c",
+  "rough": 0.5,
+  "double": false,
+  "emit": 0.0
+ },
+ "Deck": {
+  "hex": "#b18657",
+  "rough": 0.85,
+  "double": false,
+  "emit": 0.0
+ },
+ "Metal": {
+  "hex": "#7b8087",
+  "rough": 0.4,
+  "double": false,
+  "emit": 0.0
+ },
+ "Ash": {
+  "hex": "#3a3938",
+  "rough": 0.85,
+  "double": false,
+  "emit": 0.0
+ },
+ "Charcoal": {
+  "hex": "#1e1c1b",
+  "rough": 0.85,
+  "double": false,
+  "emit": 0.0
+ },
+ "Hide": {
+  "hex": "#7c5b41",
+  "rough": 0.85,
+  "double": false,
+  "emit": 0.0
+ },
+ "Shell": {
+  "hex": "#f2dac6",
+  "rough": 0.4,
+  "double": false,
+  "emit": 0.0
+ },
+ "Cloth": {
+  "hex": "#b9c2a0",
+  "rough": 0.85,
+  "double": false,
+  "emit": 0.0
+ },
+ "SandMat": {
+  "hex": "#e6d3a3",
+  "rough": 0.85,
+  "double": false,
+  "emit": 0.0
+ },
+ "FishFin": {
+  "hex": "#3f7fa6",
+  "rough": 0.85,
+  "double": true,
+  "emit": 0.0
+ },
+ "WaterBlue": {
+  "hex": "#4aa3c7",
+  "rough": 0.1,
+  "double": false,
+  "emit": 0.0
+ },
+ "Deer": {
+  "hex": "#a8744b",
+  "rough": 0.85,
+  "double": false,
+  "emit": 0.0
+ },
+ "DeerLight": {
+  "hex": "#dcbd94",
+  "rough": 0.85,
+  "double": false,
+  "emit": 0.0
+ },
+ "DeerDark": {
+  "hex": "#553a27",
+  "rough": 0.85,
+  "double": false,
+  "emit": 0.0
+ },
+ "Monkey": {
+  "hex": "#6d4c35",
+  "rough": 0.85,
+  "double": false,
+  "emit": 0.0
+ },
+ "MonkeyLight": {
+  "hex": "#c9a37c",
+  "rough": 0.85,
+  "double": false,
+  "emit": 0.0
+ },
+ "Shark": {
+  "hex": "#5d7280",
+  "rough": 0.4,
+  "double": false,
+  "emit": 0.0
+ },
+ "SharkBelly": {
+  "hex": "#dfe6ea",
+  "rough": 0.4,
+  "double": false,
+  "emit": 0.0
+ },
+ "SharkFin": {
+  "hex": "#566a77",
+  "rough": 0.4,
+  "double": true,
+  "emit": 0.0
+ },
+ "Snake": {
+  "hex": "#52803c",
+  "rough": 0.5,
+  "double": false,
+  "emit": 0.0
+ },
+ "SnakeDark": {
+  "hex": "#2f4d27",
+  "rough": 0.5,
+  "double": false,
+  "emit": 0.0
+ },
+ "Turtle": {
+  "hex": "#4b6a3f",
+  "rough": 0.85,
+  "double": false,
+  "emit": 0.0
+ },
+ "TurtleLight": {
+  "hex": "#a9b27c",
+  "rough": 0.85,
+  "double": false,
+  "emit": 0.0
+ },
+ "Fowl": {
+  "hex": "#8a5a34",
+  "rough": 0.85,
+  "double": false,
+  "emit": 0.0
+ },
+ "FowlDark": {
+  "hex": "#22402f",
+  "rough": 0.85,
+  "double": true,
+  "emit": 0.0
+ },
+ "Comb": {
+  "hex": "#c8322c",
+  "rough": 0.85,
+  "double": false,
+  "emit": 0.0
+ },
+ "Parrot": {
+  "hex": "#d33b2f",
+  "rough": 0.85,
+  "double": false,
+  "emit": 0.0
+ },
+ "ParrotWing": {
+  "hex": "#2f6fd0",
+  "rough": 0.85,
+  "double": true,
+  "emit": 0.0
+ },
+ "ParrotBeak": {
+  "hex": "#f0c23c",
+  "rough": 0.85,
+  "double": false,
+  "emit": 0.0
+ },
+ "Butterfly": {
+  "hex": "#f39a2b",
+  "rough": 0.85,
+  "double": true,
+  "emit": 0.3
+ },
+ "PlaneBody": {
+  "hex": "#d9dbdc",
+  "rough": 0.45,
+  "double": false,
+  "emit": 0.0
+ },
+ "PlaneStripe": {
+  "hex": "#b4412f",
+  "rough": 0.45,
+  "double": false,
+  "emit": 0.0
+ },
+ "PlaneGlass": {
+  "hex": "#27323a",
+  "rough": 0.15,
+  "double": false,
+  "emit": 0.0
+ },
+ "Plaster": {
+  "hex": "#dad5c8",
+  "rough": 0.85,
+  "double": false,
+  "emit": 0.0
+ },
+ "PlasterRed": {
+  "hex": "#a8402f",
+  "rough": 0.85,
+  "double": false,
+  "emit": 0.0
+ },
+ "CanvasOld": {
+  "hex": "#b8ac8b",
+  "rough": 0.85,
+  "double": true,
+  "emit": 0.0
+ },
+ "Clay": {
+  "hex": "#8b5b3d",
+  "rough": 0.85,
+  "double": false,
+  "emit": 0.0
+ },
+ "Brass": {
+  "hex": "#c9a24a",
+  "rough": 0.3,
+  "double": false,
+  "emit": 0.0
+ },
+ "Bamboo": {
+  "hex": "#86a84a",
+  "rough": 0.5,
+  "double": false,
+  "emit": 0.0
+ },
+ "BambooDark": {
+  "hex": "#5f7d37",
+  "rough": 0.85,
+  "double": false,
+  "emit": 0.0
+ },
+ "Banana": {
+  "hex": "#f0cf3f",
+  "rough": 0.5,
+  "double": false,
+  "emit": 0.0
+ },
+ "PetalPink": {
+  "hex": "#e8679a",
+  "rough": 0.85,
+  "double": true,
+  "emit": 0.0
+ },
+ "PetalYellow": {
+  "hex": "#f4d04a",
+  "rough": 0.85,
+  "double": true,
+  "emit": 0.0
+ },
+ "PetalViolet": {
+  "hex": "#8e63d6",
+  "rough": 0.85,
+  "double": true,
+  "emit": 0.0
+ },
+ "Skin": {
+  "hex": "#c8906c",
+  "rough": 0.85,
+  "double": false,
+  "emit": 0.0
+ },
+ "Sleeve": {
+  "hex": "#3e5b6d",
+  "rough": 0.85,
+  "double": false,
+  "emit": 0.0
+ },
+ "Waterfall": {
+  "hex": "#cfeef7",
+  "rough": 0.2,
+  "double": true,
+  "emit": 0.25
+ },
+ "VenisonRaw": {
+  "hex": "#b8404a",
+  "rough": 0.5,
+  "double": false,
+  "emit": 0.0
+ },
+ "VenisonCooked": {
+  "hex": "#70391f",
+  "rough": 0.85,
+  "double": false,
+  "emit": 0.0
+ },
+ "Egg": {
+  "hex": "#f2ead9",
+  "rough": 0.4,
+  "double": false,
+  "emit": 0.0
+ }
+}

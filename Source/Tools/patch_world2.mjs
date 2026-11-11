@@ -1,0 +1,20 @@
+import fs from 'node:fs';
+const w = 'C:/Survival Fable 62/Assets/Editor/WorldBuilder.cs';
+let t = fs.readFileSync(w, 'utf8').replace(/\r\n/g, '\n'); const r = [];
+function rep(a, b) { const ok = t.includes(a); r.push((ok ? 'ok   ' : 'MISS ') + a.slice(0, 60)); if (ok) t = t.replace(a, b); }
+rep('new Vector2(700, 520)) / 115f), 1.6f) * 38f;', 'new Vector2(700, 520)) / 160f), 1.7f) * 30f;');
+rep('static void Flatten(float[,] h, Vector2 c, float radius, float lower = 0f)\n        {\n            float target = (RawHeight(c.x, c.y) - lower) / MaxH;', 'static void Flatten(float[,] h, Vector2 c, float radius, float lower = 0f, float absolute = -1f)\n        {\n            float target = (absolute >= 0 ? absolute : RawHeight(c.x, c.y) - lower) / MaxH;');
+rep('Vector2 pool = falls - up * 6f;', 'Vector2 pool = falls - up * 6f;\n            float poolFloor = RawHeight(pool.x - up.x * 9f, pool.y - up.y * 9f) - 1.1f;   // cut the basin into the slope, below its downhill lip');
+rep('Flatten(h, pool, 9f, 1.6f);', 'Flatten(h, pool, 8f, 0f, poolFloor);');
+rep('Vector2 jetty = Shore(jettyDir);', 'Vector2 jetty = Shore(jettyDir, 0.12f);');
+rep('float[] tile = { 6, 7, 11, 7, 6 };', 'float[] tile = { 6, 7, 7, 7, 6 };');
+rep('var poolGo = MeshObject("FallsPool", GridMesh("PoolMesh", 15, 6), Asset("WaterPool"), f3 + Vector3.up * 0.75f);', 'var poolGo = MeshObject("FallsPool", GridMesh("PoolMesh", 19, 6), Asset("WaterPool"), f3 + Vector3.up * 0.7f);');
+rep('SetPiece(loc, "Pier", new Vector3(j3.x, Sea - 0.1f, j3.z), Quaternion.LookRotation(-jOut));', 'SetPiece(loc, "Pier", new Vector3(j3.x, Sea - 0.15f, j3.z) - jOut * 1.5f, Quaternion.LookRotation(-jOut));');
+rep('Prop(loc, "Rowboat", Ground(jetty - jettyDir * 5f + new Vector2(5f, 0)), 70, new Vector3(1.6f, 0.6f, 3.2f));', 'Prop(loc, "Rowboat", Ground(jetty - jettyDir * 9f + new Vector2(5f, 0)), 70, new Vector3(1.6f, 0.6f, 3.2f));');
+rep('MakeCrate(loc, 10, Ground(jetty - jettyDir * 6f + new Vector2(-3f, 1f)), 300, "rod", 1, "trap_kit", 1);', 'MakeCrate(loc, 10, Ground(jetty - jettyDir * 10f + new Vector2(-3f, 1f)), 300, "rod", 1, "trap_kit", 1);');
+fs.writeFileSync(w, t);
+const p = 'C:/Survival Fable 62/Assets/Editor/ProjectSetup.cs';
+let s = fs.readFileSync(p, 'utf8').replace(/\r\n/g, '\n');
+s = s.replace('{ "Grass", new Color(0.36f, 0.58f, 0.22f) }', '{ "Grass", new Color(0.35f, 0.52f, 0.23f) }');
+fs.writeFileSync(p, s);
+console.log(r.join('\n'));
