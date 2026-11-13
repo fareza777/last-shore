@@ -6,7 +6,7 @@ using UnityEngine;
 namespace LastShore
 {
     [Serializable]
-    public class PlacedData { public string prefab; public float x, y, z, rot; public float fuel, water; public bool lit; }
+    public class PlacedData { public string prefab; public float x, y, z, rot; public float fuel, water; public bool lit; public ItemStack[] items; }
 
     [Serializable]
     public class SaveData

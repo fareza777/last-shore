@@ -35,6 +35,7 @@ namespace LastShore
         public Vector3 Home;
         public System.Action<Animal> DiedEvent;
         public bool Engaged { get; protected set; }      // busy with the player: do not despawn
+        public virtual bool Hostile => false;             // true for animals that attack
         protected bool Dead;
         protected float Speed;                             // current planar speed, for animation
         protected ItemDef LastTool;

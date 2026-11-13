@@ -302,6 +302,21 @@ namespace LastShore.EditorTools
         }
 
         [MenuItem("Last Shore/Refresh Water Materials")]
+        /// <summary>Assets added after the first full setup: sky, blob shadow and wet sand materials, the storage chest prefab.</summary>
+        public static void BuildExtras()
+        {
+            AssetDatabase.Refresh();
+            var noise = AssetDatabase.LoadAssetAtPath<Texture2D>(TexDir + "/WaterNormal.png");
+            MakeMat(MatDir, "SkyGame", "LastShore/Sky", m => m.SetTexture("_NoiseTex", noise));
+            MakeMat(MatDir, "Blob", "LastShore/Blob", m => m.enableInstancing = true);
+            MakeMat(MatDir, "WetSand", "LastShore/WetSand", m => { m.SetFloat("_Strength", 0.6f); m.SetFloat("_Height", 0.4f); });
+            var go = new GameObject("StorageChest"); Spawn("Chest", go.transform); SetLayer(go, 11);
+            var b = go.AddComponent<BoxCollider>(); b.size = new Vector3(0.95f, 0.62f, 0.6f); b.center = new Vector3(0, 0.31f, 0);
+            go.AddComponent<StorageChest>().Prefab = "StorageChest"; SavePrefab(go, "StorageChest");
+            AssetDatabase.SaveAssets();
+            Debug.Log("[LastShore] Extras built.");
+        }
+
         public static void RefreshWater()
         {
             var noise = AssetDatabase.LoadAssetAtPath<Texture2D>(TexDir + "/WaterNormal.png");

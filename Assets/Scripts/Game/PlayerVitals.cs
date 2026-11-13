@@ -15,6 +15,11 @@ namespace LastShore
         public void SetPoison(float seconds) { PoisonTime = seconds; }
         public event Action<string> Died;
         public event Action<float> Damaged;
+        public event Action<Vector3> HitFrom;
+        /// <summary>Seconds left on the buff from a cooked meal (faster stamina and healing).</summary>
+        public float WellFed { get; private set; }
+        /// <summary>Seconds left on the buff from stew (the cold bites far less).</summary>
+        public float Hearty { get; private set; }
 
         PlayerController _pc; float _check, _wetTimer; bool _lowWarned; string _lastCause = "exhaustion";
 
@@ -29,7 +34,7 @@ namespace LastShore
             if (Stamina <= 0) Exhausted = true;
         }
 
-        public void Damage(float amount, string cause, bool feedback = true)
+        public void Damage(float amount, string cause, bool feedback = true, Vector3? from = null)
         {
             var gm = GameManager.I;
             if (gm.Dead || gm.Cinematic || amount <= 0) return;
@@ -39,7 +44,8 @@ namespace LastShore
                 Damaged?.Invoke(amount);
                 _pc.Shake(Mathf.Clamp(amount / 12f, 0.3f, 1.2f));
                 AudioManager.I.Play("hurt", 0.8f);
-                GameSettings.Vibrate();
+                Haptics.Pulse(70);
+                if (from.HasValue) HitFrom?.Invoke(from.Value);
             }
             if (Health <= 0) { Health = 0; Died?.Invoke(cause); }
         }
@@ -47,6 +53,8 @@ namespace LastShore
         public void Consume(ItemDef def)
         {
             if (def.CuresPoison) PoisonTime = def.Id == "antidote" ? 0 : Mathf.Max(0, PoisonTime - 28f);
+            if (def.Id == "stew") { WellFed = 420f; Hearty = 420f; }
+            else if (def.Id.EndsWith("_cooked")) WellFed = Mathf.Max(WellFed, 240f);
             Hunger = Mathf.Clamp(Hunger + def.Food, 0, 100);
             Thirst = Mathf.Clamp(Thirst + def.Water, 0, 100);
             if (def.Health > 0) Health = Mathf.Clamp(Health + def.Health, 0, 100);
@@ -80,12 +88,15 @@ namespace LastShore
             if (raining || _pc.Swimming) _wetTimer = 45f; else _wetTimer -= dt * (NearFire ? 4f : 1f);
             Wet = _wetTimer > 0;
 
-            Hunger = Mathf.Max(0, Hunger - dt * (100f / 900f) * (_pc.Sprinting ? 1.5f : 1f));
-            Thirst = Mathf.Max(0, Thirst - dt * (100f / 660f) * (_pc.Sprinting ? 1.6f : 1f));
+            // the first two days are forgiving while the player learns where food and water are
+            float needs = (gm.Sky.Day <= 1 ? 0.6f : gm.Sky.Day == 2 ? 0.8f : 1f) * Camp.NeedsMul;
+            Hunger = Mathf.Max(0, Hunger - dt * (100f / 900f) * (_pc.Sprinting ? 1.5f : 1f) * needs);
+            Thirst = Mathf.Max(0, Thirst - dt * (100f / 660f) * (_pc.Sprinting ? 1.6f : 1f) * needs);
+            WellFed = Mathf.Max(0, WellFed - dt); Hearty = Mathf.Max(0, Hearty - dt);
 
             if (_pc.Sprinting) UseStamina(dt * 11f);
             else if (_pc.Swimming) UseStamina(dt * 4.5f);
-            else Stamina = Mathf.Min(100, Stamina + dt * (Hunger > 15 && Thirst > 15 ? 16f : 7f));
+            else Stamina = Mathf.Min(100, Stamina + dt * (Hunger > 15 && Thirst > 15 ? 16f : 7f) * Camp.StaminaMul * (WellFed > 0 ? 1.35f : 1f));
             if (Exhausted && Stamina > 25) Exhausted = false;
 
             float warm = gm.Sky.IsNight ? -0.34f : 0.55f;
@@ -93,6 +104,7 @@ namespace LastShore
             if (Wet) warm -= 0.15f;
             if (_pc.Swimming) warm -= 0.3f;
             if (warm < 0 && Sheltered) warm *= 0.35f;
+            if (warm < 0 && Hearty > 0) warm *= 0.3f;
             if (gm.Interaction.HoldingTorch) warm += 0.2f;
             if (NearFire) warm = 3.2f;
             Warmth = Mathf.Clamp(Warmth + warm * dt, 0, 100);
@@ -102,7 +114,7 @@ namespace LastShore
             if (Thirst <= 0) Damage(dt * 1.0f, "dehydration", false);
             if (Warmth <= 0) Damage(dt * 0.8f, "the cold", false);
             if (_pc.Swimming && Stamina <= 0) Damage(dt * 7f, "drowning", false);
-            if (Hunger > 40 && Thirst > 40 && Warmth > 30 && Health < 100) Health = Mathf.Min(100, Health + dt * 0.55f);
+            if (Hunger > 40 && Thirst > 40 && Warmth > 30 && Health < 100) Health = Mathf.Min(100, Health + dt * (WellFed > 0 ? 1.1f : 0.55f));
 
             if (Health < 25 && !_lowWarned) { _lowWarned = true; AudioManager.I.Say("low_health", Story.Line("low_health")); }
             if (Health > 50) _lowWarned = false;

@@ -108,6 +108,7 @@ namespace LastShore
             d = Add("collector_kit", "Rain Collector", ItemKind.Placeable, "WaterCollector", "Funnels rain into a bowl. Fill flasks here.", 2); d.PlacePrefab = "WaterCollector";
             d = Add("trap_kit", "Fish Trap", ItemKind.Placeable, "FishTrap", "Set it in shallow water. It catches fish while you work.", 3); d.PlacePrefab = "FishTrap";
             d = Add("torchstand_kit", "Standing Torch", ItemKind.Placeable, "TorchStand", "A light that stays where you plant it.", 6); d.PlacePrefab = "TorchStand";
+            d = Add("chest_kit", "Storage Chest", ItemKind.Placeable, "Chest", "Keeps eighteen stacks of supplies safe at camp.", 2); d.PlacePrefab = "StorageChest";
             d = Add("fence_kit", "Stake Fence", ItemKind.Placeable, "Fence", "Sharpened stakes. Animals cannot push through.", 12); d.PlacePrefab = "Fence";
 
             R("rope", Station.None, "Basics", ("fiber", 3));
@@ -125,6 +126,7 @@ namespace LastShore
             R("campfire_kit", Station.None, "Camp", ("stick", 4), ("stone", 5));
             R("shelter_kit", Station.None, "Camp", ("log", 4), ("stick", 6), ("leaf", 8));
             R("workbench_kit", Station.None, "Camp", ("log", 4), ("stick", 4), ("rope", 1));
+            R("chest_kit", Station.None, "Camp", ("log", 3), ("stick", 4), ("rope", 1));
             R("bed_kit", Station.None, "Camp", ("log", 2), ("leaf", 8), ("hide", 1));
             R("torchstand_kit", Station.None, "Camp", ("stick", 2), ("fiber", 2), ("stone", 2));
             R("fence_kit", Station.None, "Camp", ("stick", 5), ("rope", 1)).Count = 2;
@@ -255,5 +257,22 @@ namespace LastShore
         }
 
         public void NotifyChanged() => Changed?.Invoke();
+
+        /// <summary>Tidies the backpack (not the hotbar): merges split stacks and groups items by kind, then by name.</summary>
+        public void Sort()
+        {
+            var list = new List<ItemStack>();
+            for (int i = HotbarSize; i < Unlocked; i++)
+            {
+                var s = Slots[i]; if (s.Empty) continue;
+                if (s.Def.Stack > 1)
+                    foreach (var o in list)
+                        if (o.id == s.id && o.count < s.Def.Stack && s.count > 0) { int n = Mathf.Min(s.count, s.Def.Stack - o.count); o.count += n; s.count -= n; }
+                if (s.count > 0) list.Add(s);
+            }
+            list.Sort((a, b) => { int k = ((int)a.Def.Kind).CompareTo((int)b.Def.Kind); return k != 0 ? k : string.CompareOrdinal(a.Def.Name, b.Def.Name); });
+            for (int i = HotbarSize; i < Unlocked; i++) Slots[i] = i - HotbarSize < list.Count ? list[i - HotbarSize] : new ItemStack();
+            Changed?.Invoke();
+        }
     }
 }

@@ -66,7 +66,13 @@ namespace LastShore
         void OnNewDay(int day)
         {
             if (day < 2 || day % 2 != 0) return;
-            var gm = GameManager.I;
+            SpawnFlotsam();
+        }
+
+        /// <summary>Washes a crate up on the shore nearest the player and marks it on the compass.</summary>
+        public void SpawnFlotsam()
+        {
+            var gm = GameManager.I; if (gm == null || gm.Player == null || Marker != null) return;
             Vector3 p = gm.Player.transform.position;
             Vector3 dir = p - World.Center; dir.y = 0; if (dir.sqrMagnitude < 1f) dir = Vector3.back;
             dir = Quaternion.Euler(0, Random.Range(-50f, 50f), 0) * dir.normalized;

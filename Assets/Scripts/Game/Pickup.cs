@@ -18,14 +18,29 @@ namespace LastShore
         public void Interact()
         {
             int left = GameManager.I.Inv.Add(ItemId, Count);
-            if (left == Count) { GameManager.I.Hud.Hint("Your backpack is full."); return; }
-            AudioManager.I.Play("pickup", 0.9f, 0.12f);
+            if (left == Count)
+            {
+                if (!_sweeping) { GameManager.I.Hud.Hint("Your backpack is full."); Tips.Show("full", "Backpack full. Drop what you do not need, or build a Storage Chest at camp."); }
+                return;
+            }
+            if (!_sweeping) AudioManager.I.Play("pickup", 0.9f, 0.12f);
             Count = left;
+            if (!_sweeping)
+            {
+                _sweeping = true;
+                foreach (var c in Physics.OverlapSphere(transform.position, 2.6f, 1 << World.InteractLayer, QueryTriggerInteraction.Collide))
+                {
+                    var other = c.GetComponent<Pickup>();
+                    if (other != null && other != this && !other.Removed) other.Interact();
+                }
+                _sweeping = false;
+            }
             if (left > 0) return;
             if (Dynamic) Destroy(gameObject);
             else { SetRemoved(true); GameManager.I.MarkRemoved(this, -1); }
         }
 
+        static bool _sweeping;
         public bool Removed { get; private set; }
         public override void SetRemoved(bool removed)
         {

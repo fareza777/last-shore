@@ -25,7 +25,9 @@ namespace LastShore
         void Start()
         {
             _sun = RenderSettings.sun != null ? RenderSettings.sun : FindFirstObjectByType<Light>();
-            if (RenderSettings.skybox != null) { _sky = new Material(RenderSettings.skybox); RenderSettings.skybox = _sky; }
+            var gameSky = Resources.Load<Material>("Materials/SkyGame");
+            if (gameSky != null) RenderSettings.skybox = gameSky;          // clouds, sun and moon, driven by the globals below
+            else if (RenderSettings.skybox != null) { _sky = new Material(RenderSettings.skybox); RenderSettings.skybox = _sky; }
             RenderSettings.fog = true; RenderSettings.fogMode = FogMode.ExponentialSquared;
             RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Trilight;
             BuildStars();
@@ -98,6 +100,20 @@ namespace LastShore
             Shader.SetGlobalColor("_LS_Horizon", fog);
             Shader.SetGlobalFloat("_LS_Day", DayFactor * Mathf.Lerp(1f, 0.55f, Cloud));
 
+            // ---- sky shader inputs
+            Vector3 sunDir = Quaternion.Euler(ang, -38f, 0) * Vector3.back;
+            Color top = Color.Lerp(Color.Lerp(new Color(0.012f, 0.028f, 0.085f), new Color(0.13f, 0.36f, 0.78f), DayFactor), new Color(0.30f, 0.27f, 0.50f), dusk * 0.5f);
+            top = Color.Lerp(top, grey * Mathf.Lerp(0.1f, 0.72f, DayFactor), Cloud * 0.8f) + Color.white * Flash * 0.3f;
+            Color sunCol = Color.Lerp(new Color(1f, 0.48f, 0.2f), new Color(1f, 0.95f, 0.82f), Mathf.Clamp01(elev * 3f)) * Mathf.Clamp01(elev * 8f + 0.6f) * Mathf.Lerp(1f, 0.12f, Cloud);
+            Color moonCol = new Color(0.74f, 0.84f, 1f) * Mathf.Clamp01(-elev * 6f) * Mathf.Lerp(1f, 0.08f, Cloud);
+            Color cloudCol = Color.Lerp(Color.Lerp(new Color(0.06f, 0.08f, 0.13f), new Color(0.97f, 0.98f, 1f), DayFactor), new Color(1f, 0.64f, 0.48f), dusk * 0.6f);
+            cloudCol = Color.Lerp(cloudCol, grey * Mathf.Lerp(0.13f, 0.6f, DayFactor), Cloud * 0.85f) + Color.white * Flash * 0.5f;
+            Shader.SetGlobalColor("_LS_SkyTop", top);
+            Shader.SetGlobalVector("_LS_SunDir", sunDir); Shader.SetGlobalVector("_LS_MoonDir", -sunDir);
+            Shader.SetGlobalColor("_LS_SunCol", sunCol); Shader.SetGlobalColor("_LS_MoonCol", moonCol);
+            Shader.SetGlobalColor("_LS_CloudCol", cloudCol);
+            Shader.SetGlobalFloat("_LS_CloudCover", Mathf.Lerp(0.2f, 1f, Cloud));
+
             if (_sky != null)
             {
                 _sky.SetFloat("_Exposure", Mathf.Lerp(0.1f, 1.2f, DayFactor) * Mathf.Lerp(1f, 0.45f, Cloud) + Flash);
@@ -143,12 +159,15 @@ namespace LastShore
 
         void Next()
         {
-            int day = _sky.Day;
+            int day = _sky.Day; var before = State;
             if (day <= 1) { State = WeatherState.Clear; _timer = 240f; return; }
             float storm = Mathf.Min(0.07f + day * 0.012f, 0.3f), rain = 0.2f, overcast = 0.2f;
             float r = UnityEngine.Random.value;
             State = r < storm ? WeatherState.Storm : r < storm + rain ? WeatherState.Rain : r < storm + rain + overcast ? WeatherState.Overcast : WeatherState.Clear;
             _timer = State == WeatherState.Clear ? UnityEngine.Random.Range(220f, 460f) : UnityEngine.Random.Range(100f, 230f);
+            // a storm that blows itself out leaves something on the beach
+            var gm = GameManager.I;
+            if (before == WeatherState.Storm && State != WeatherState.Storm && gm != null && gm.Events != null) gm.Events.SpawnFlotsam();
         }
 
         void Update()

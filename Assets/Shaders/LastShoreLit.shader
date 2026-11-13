@@ -94,6 +94,11 @@ Shader "LastShore/Lit"
                 half3 c = v.color.rgb;
                 half3 lin = c * (c * (c * 0.305306011h + 0.682171111h) + 0.012522878h);
                 o.albedo = _BaseColor.rgb * lerp(half3(1, 1, 1), lin, _VertexColor);
+                // every plant gets its own shade, so a grove does not look stamped out (not for things held in the hand)
+                float3 origin = GetObjectToWorldMatrix()._m03_m13_m23;
+                half tone = frac(sin(dot(origin.xz, float2(12.9898, 78.233))) * 43758.5453) - 0.5h;
+                tone *= saturate(v.color.a * 4.0h) * _VertexColor * saturate(distance(origin, _WorldSpaceCameraPos) - 1.5);
+                o.albedo *= half3(1.0h + tone * 0.30h, 1.0h + tone * 0.14h, 1.0h - tone * 0.22h);
                 o.ambient = SampleSH(o.normalWS);
                 o.fogFactor = ComputeFogFactor(o.positionCS.z);
                 return o;

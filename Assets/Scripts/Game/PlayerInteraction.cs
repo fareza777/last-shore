@@ -21,7 +21,8 @@ namespace LastShore
         int _mask;
 
         // fishing
-        int _fish; float _fishTimer; Vector3 _fishPos, _fishStart; GameObject _bobber;
+        int _fish; float _fishTimer, _reel, _reelSpeed, _zone; Vector3 _fishPos, _fishStart; GameObject _bobber;
+        const float ZoneWidth = 0.24f;
 
         public ItemStack Current => _inv.Slots[Selected];
 
@@ -70,7 +71,7 @@ namespace LastShore
                 if (def.Tool == ToolType.Torch)
                 {
                     HoldingTorch = true;
-                    _torchFire = FX.Fire(_held.transform, new Vector3(0, 0.5f, 0), 0.35f, false, 16f);
+                    _torchFire = FX.Fire(_held.transform, new Vector3(0, 0.5f, 0), 0.35f, false, 21f);
                     _torchLight = _torchFire.GetComponentInChildren<Light>();
                 }
             }
@@ -102,7 +103,7 @@ namespace LastShore
             if (Physics.Raycast(cam.position, cam.forward, out var hit, 3.3f, _mask, QueryTriggerInteraction.Collide))
                 _target = hit.collider.GetComponentInParent<IInteractable>();
             string prompt = _target?.Prompt();
-            if (_fish == 2) prompt = null;
+            if (_fish >= 2) prompt = null;
             gm.Hud.SetPrompt(string.IsNullOrEmpty(prompt) ? null : prompt);
             if (GameInput.Interact && _target != null && !string.IsNullOrEmpty(prompt)) { _target.Interact(); return; }
 
@@ -154,7 +155,7 @@ namespace LastShore
         void Wear(int amount)
         {
             var s = Current;
-            if (s.Empty || s.Def.Durability <= 0) return;
+            if (s.Empty || s.Def.Durability <= 0 || Camp.SaveWear) return;
             s.durability -= amount;
             if (s.durability <= 0)
             {
@@ -199,7 +200,8 @@ namespace LastShore
             }
             h.Hit(tool, tool != null ? tool.Damage : 5f, hit.point);
             Animal.Noise(hit.point, 18f);
-            _pc.Shake(0.25f);
+            _pc.Shake(0.3f); Haptics.Pulse(18);
+            Tween.Punch(_pc.Hand, 0.1f, 0.16f);
             if (tool != null) Wear(1);
         }
 
@@ -241,7 +243,7 @@ namespace LastShore
             _fishTimer -= Time.deltaTime;
             if (_bobber != null)
             {
-                float dip = _fish == 2 ? Mathf.Sin(Time.time * 22f) * 0.09f - 0.08f : Mathf.Sin(Time.time * 2f) * 0.03f;
+                float dip = _fish >= 2 ? Mathf.Sin(Time.time * 22f) * 0.09f - 0.08f : Mathf.Sin(Time.time * 2f) * 0.03f;
                 _bobber.transform.position = _fishPos + Vector3.up * dip;
             }
             if (_fish == 1 && _fishTimer <= 0)
@@ -249,12 +251,19 @@ namespace LastShore
                 _fish = 2; _fishTimer = 1.7f;
                 AudioManager.I.PlayAt("fish_bite", _fishPos, 1f);
                 GameManager.I.Hud.Hint(GameInput.TouchMode ? "A BITE!  Tap USE" : "A BITE!  Click now", 1.7f, true);
-                GameSettings.Vibrate();
+                Haptics.Pulse(60);
             }
             else if (_fish == 2 && _fishTimer <= 0)
             {
                 GameManager.I.Hud.Hint("It got away.");
                 CancelFishing();
+            }
+            else if (_fish == 3)
+            {
+                // reeling: a marker sweeps the bar, land it inside the green zone
+                _reel += Time.deltaTime * _reelSpeed;
+                GameManager.I.Hud.FishBar(true, Mathf.PingPong(_reel, 1f), _zone, ZoneWidth);
+                if (_fishTimer <= 0) { GameManager.I.Hud.Hint("The line went slack."); CancelFishing(); }
             }
         }
 
@@ -263,10 +272,25 @@ namespace LastShore
             _cooldown = 0.5f;
             if (_fish == 2)
             {
-                _inv.Add("fish_raw", 1);
-                AudioManager.I.Play("splash", 0.6f);
-                FX.Burst(_fishPos, new Color(0.8f, 0.92f, 1f, 0.8f), 12, 0.09f, 3f);
-                Wear(1);
+                // hooked: now reel it in
+                _fish = 3; _fishTimer = 6f; _reel = UnityEngine.Random.value; _reelSpeed = UnityEngine.Random.Range(0.8f, 1.15f); _zone = UnityEngine.Random.Range(0.2f, 0.8f);
+                GameManager.I.Hud.Hint(GameInput.TouchMode ? "Hooked!  Tap USE when the marker is in the green" : "Hooked!  Click when the marker is in the green", 3f, true);
+                Haptics.Pulse(25);
+                return;
+            }
+            if (_fish == 3)
+            {
+                float miss = Mathf.Abs(Mathf.PingPong(_reel, 1f) - _zone);
+                if (miss <= ZoneWidth * 0.5f)
+                {
+                    bool perfect = miss < 0.04f;
+                    _inv.Add("fish_raw", perfect ? 2 : 1);
+                    if (perfect) GameManager.I.Hud.Hint("Perfect catch!  Two fish", 2f, true);
+                    AudioManager.I.Play("splash", 0.6f); Haptics.Pulse(40);
+                    FX.Burst(_fishPos, new Color(0.8f, 0.92f, 1f, 0.8f), 14, 0.09f, 3f);
+                    Wear(1);
+                }
+                else GameManager.I.Hud.Hint("It slipped the hook.");
             }
             else GameManager.I.Hud.Hint("Reeled in too early.");
             CancelFishing();
@@ -276,6 +300,7 @@ namespace LastShore
         {
             _fish = 0;
             if (_bobber != null) Destroy(_bobber);
+            if (GameManager.I != null && GameManager.I.Hud != null) GameManager.I.Hud.FishBar(false, 0, 0, 0);
         }
     }
 

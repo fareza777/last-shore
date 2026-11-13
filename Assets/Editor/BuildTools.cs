@@ -9,7 +9,7 @@ namespace LastShore.EditorTools
     public static class BuildTools
     {
         /// <summary>Re-renders item icons and water materials, then builds.</summary>
-        public static void RefreshAndBuild() { ProjectSetup.RenderIcons(); ProjectSetup.RefreshWater(); BuildAndroid(); }
+        public static void RefreshAndBuild() { ProjectSetup.BuildExtras(); ProjectSetup.RenderIcons(); ProjectSetup.RefreshWater(); BuildAndroid(); }
 
         [MenuItem("Last Shore/5. Build Android APK")]
         public static void BuildAndroid()

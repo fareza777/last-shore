@@ -12,6 +12,8 @@ namespace LastShore
         public GameObject Depleted;   // shown when harvested (stump), optional
         public bool KeepCollider;
         int _hp = -1; bool _removed, _falling;
+        /// <summary>True once a tree or rock has been harvested away (bushes keep their body).</summary>
+        public bool Removed => _removed && !KeepCollider;
 
         bool ByHand => Type == NodeType.Bush || Type == NodeType.Fiber || Type == NodeType.Fern || Type == NodeType.Banana || Type == NodeType.Herb || Type == NodeType.Reed;
         bool Wood => Type == NodeType.Palm || Type == NodeType.Tree || Type == NodeType.Bamboo || Type == NodeType.DeadTree;
@@ -64,7 +66,8 @@ namespace LastShore
             _hp--;
             AudioManager.I.PlayAt(Wood ? "chop" : "mine", point, 1f);
             Animal.Noise(transform.position, 26f);
-            FX.Burst(point, Wood ? new Color(0.78f, 0.6f, 0.38f) : new Color(0.62f, 0.63f, 0.65f), 9);
+            FX.Burst(point, Wood ? new Color(0.78f, 0.6f, 0.38f) : new Color(0.62f, 0.63f, 0.65f), 16, 0.13f, 3.4f);
+            GameManager.I.Hud.NodeBar(Mathf.Max(0, _hp) / (float)MaxHp);
             if (Visual != null) StartCoroutine(Wobble());
             if (_hp > 0) return;
             switch (Type)
@@ -107,8 +110,12 @@ namespace LastShore
             Vector3 axis = Vector3.Cross(Vector3.up, away.normalized);
             float time = 0;
             while (time < 1f) { time += Time.deltaTime / 1.5f; t.rotation = Quaternion.AngleAxis(Tween.Evaluate(Ease.InCubic, time) * 86f, axis) * transform.rotation * r0; yield return null; }
-            FX.Burst(transform.position + away.normalized * 3f + Vector3.up * 0.4f, new Color(0.3f, 0.6f, 0.28f), 26, 0.2f, 3.5f);
-            GameManager.I.Player.Shake(0.5f);
+            // the crown hits the ground: leaves and dust along the trunk, then a small bounce
+            for (int i = 1; i <= 4; i++)
+                FX.Burst(transform.position + away.normalized * (i * 1.5f) + Vector3.up * 0.4f, i < 3 ? new Color(0.72f, 0.64f, 0.46f) : new Color(0.3f, 0.6f, 0.28f), 14, 0.2f, 3.5f);
+            GameManager.I.Player.Shake(0.7f); Haptics.Pulse(80);
+            float bounce = 0;
+            while (bounce < 1f) { bounce += Time.deltaTime / 0.32f; t.rotation = Quaternion.AngleAxis(86f - Mathf.Sin(bounce * Mathf.PI) * 5f, axis) * transform.rotation * r0; yield return null; }
             yield return new WaitForSeconds(0.5f);
             t.localRotation = r0; _falling = false;
             Remove();

@@ -118,7 +118,11 @@ namespace LastShore
             float depth = World.SeaLevel - feet;
             Swimming = depth > 1.25f;
             bool inWater = depth > 0.35f;
-            if (inWater && !_wasInWater && _vy < -2f) AudioManager.I.Play("splash", 0.7f);
+            if (inWater && !_wasInWater)
+            {
+                if (_vy < -2f) AudioManager.I.Play("splash", 0.7f);
+                FX.Burst(new Vector3(transform.position.x, World.SeaLevel + 0.05f, transform.position.z), new Color(0.9f, 0.96f, 1f, 0.85f), 18, 0.1f, 3.2f);
+            }
             _wasInWater = inWater;
 
             // ---- movement
@@ -151,9 +155,16 @@ namespace LastShore
             {
                 _bob += dt * (Sprinting ? 12.5f : 9f);
                 _stepDist += planar * dt;
+                if (_stepDist > 2.2f && Swimming)
+                {
+                    _stepDist = 0;
+                    AudioManager.I.Play("splash", 0.14f, 0.2f);
+                    FX.Burst(new Vector3(transform.position.x, World.SeaLevel + 0.05f, transform.position.z) + transform.forward * 0.5f, new Color(0.9f, 0.96f, 1f, 0.8f), 7, 0.08f, 2f);
+                }
                 if (_stepDist > (Sprinting ? 2.5f : 2.0f) && !Swimming)
                 {
                     _stepDist = 0;
+                    if (depth > 0.05f) FX.Burst(new Vector3(transform.position.x, World.SeaLevel + 0.05f, transform.position.z), new Color(0.9f, 0.96f, 1f, 0.8f), 8, 0.08f, 2.4f);
                     AudioManager.I.Play(inWater ? "splash" : feet < World.SeaLevel + 2.3f ? "step_sand" : "step_grass", inWater ? 0.25f : 0.5f, 0.12f);
                 }
             }

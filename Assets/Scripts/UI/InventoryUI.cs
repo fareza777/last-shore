@@ -18,6 +18,8 @@ namespace LastShore
         readonly List<(Recipe r, Button btn, Text btnLabel, Text cost, Image bg)> _rows = new List<(Recipe, Button, Text, Text, Image)>();
         Text _jTitle, _jBody, _noteTitle, _noteBody; readonly List<Text> _noteButtons = new List<Text>();
         float _refresh; RectTransform _mapPanel; MapView _mapView; Image _tabMap;
+        StorageChest _chest; int _chestSel = -1; RectTransform _chestPanel; Text _jCamp;
+        readonly Image[] _cBg = new Image[StorageChest.Size], _cIcon = new Image[StorageChest.Size]; readonly Text[] _cCount = new Text[StorageChest.Size];
 
         public static InventoryUI Create()
         {
@@ -38,6 +40,7 @@ namespace LastShore
             // ================= left: backpack
             var left = UI.Img(_window, UI.Rounded, UI.Bg, "Backpack"); left.rectTransform.Anchor(0, 0, 0, 1, Vector2.zero, new Vector2(790, 0));
             Header(left.transform, "BACKPACK", "bag");
+            var sort = UI.Btn(left.transform, "SORT", SortPack, 22); ((RectTransform)sort.transform).Pin(new Vector2(1, 1), new Vector2(1, 1), new Vector2(-38, -20), new Vector2(124, 52));
             var grid = UI.Rect("Grid", left.transform).Pin(new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -92), new Vector2(714, 600));
             for (int i = 0; i < Inventory.Size; i++)
             {
@@ -86,19 +89,39 @@ namespace LastShore
                 Row(r);
             }
 
+            _chestPanel = UI.Rect("Chest", right.transform).Stretch(26, 24, 26, 96);
+            var chTitle = UI.Label(_chestPanel, UI.Spaced("STORAGE CHEST"), 20, UI.Accent, TextAnchor.UpperLeft, FontStyle.Bold); chTitle.rectTransform.Anchor(0, 1, 1, 1, new Vector2(0, -30), Vector2.zero);
+            var cgrid = UI.Rect("Grid", _chestPanel).Pin(new Vector2(0, 1), new Vector2(0, 1), new Vector2(0, -48), new Vector2(690, 310));
+            for (int i = 0; i < StorageChest.Size; i++)
+            {
+                int idx = i; int col = i % 6, row = i / 6;
+                var bg = UI.Img(cgrid, UI.Rounded, UI.Slot, "Chest" + i, true);
+                bg.rectTransform.Pin(new Vector2(0, 1), new Vector2(0, 1), new Vector2(col * 116, -row * 101), new Vector2(106, 93));
+                var b = bg.gameObject.AddComponent<Button>(); b.transition = Selectable.Transition.None; b.onClick.AddListener(() => ClickChest(idx));
+                var ic = UI.Img(bg.transform, null, Color.white, "Icon"); ic.rectTransform.Stretch(12, 12, 12, 12); ic.preserveAspect = true;
+                var ct = UI.Label(bg.transform, "", 22, UI.TextCol, TextAnchor.LowerRight, FontStyle.Bold).Shadowed(); ct.rectTransform.Stretch(0, 6, 10, 0);
+                _cBg[i] = bg; _cIcon[i] = ic; _cCount[i] = ct;
+            }
+            var storeAll = UI.Btn(_chestPanel, "STORE ALL", StoreAll, 24, true); ((RectTransform)storeAll.transform).Pin(new Vector2(0, 1), new Vector2(0, 1), new Vector2(0, -372), new Vector2(240, 62));
+            var takeAll = UI.Btn(_chestPanel, "TAKE ALL", TakeAll, 24); ((RectTransform)takeAll.transform).Pin(new Vector2(0, 1), new Vector2(0, 1), new Vector2(256, -372), new Vector2(240, 62));
+            var chNote = UI.Label(_chestPanel, "Tap an item, then tap a slot in the other grid to move it.\nSTORE ALL keeps your hotbar and moves everything else.", 21, UI.Dim, TextAnchor.UpperLeft);
+            chNote.rectTransform.Anchor(0, 1, 1, 1, new Vector2(0, -530), new Vector2(0, -456)); chNote.lineSpacing = 1.2f;
+            _chestPanel.gameObject.SetActive(false);
+
             _mapPanel = UI.Rect("Map", right.transform).Stretch(26, 24, 26, 96); _mapView = MapView.Build(_mapPanel);
             _journalPanel = UI.Rect("Journal", right.transform).Stretch(30, 24, 30, 96);
             _jTitle = UI.Label(_journalPanel, "", 20, UI.Accent, TextAnchor.UpperLeft, FontStyle.Bold); _jTitle.rectTransform.Anchor(0, 1, 1, 1, new Vector2(0, -30), Vector2.zero);
             _jBody = UI.Label(_journalPanel, "", 24, UI.TextCol, TextAnchor.UpperLeft); _jBody.rectTransform.Anchor(0, 1, 1, 1, new Vector2(0, -110), new Vector2(0, -34));
-            var nh = UI.Label(_journalPanel, UI.Spaced("PAGES FOUND"), 18, UI.Accent, TextAnchor.UpperLeft, FontStyle.Bold); nh.rectTransform.Anchor(0, 1, 1, 1, new Vector2(0, -160), new Vector2(0, -130));
+            var nh = UI.Label(_journalPanel, UI.Spaced("PAGES FOUND"), 18, UI.Accent, TextAnchor.UpperLeft, FontStyle.Bold); nh.rectTransform.Anchor(0, 1, 1, 1, new Vector2(0, -214), new Vector2(0, -184));
+            _jCamp = UI.Label(_journalPanel, "", 19, UI.Dim, TextAnchor.UpperLeft); _jCamp.rectTransform.Anchor(0, 1, 1, 1, new Vector2(0, -176), new Vector2(0, -118)); _jCamp.lineSpacing = 1.15f;
             for (int i = 0; i < Story.Notes.Length; i++)
             {
                 int idx = i;
-                var b = UI.Btn(_journalPanel, "", () => SelectNote(idx), 20);
-                ((RectTransform)b.transform).Pin(new Vector2(0, 1), new Vector2(0, 1), new Vector2((i % 3) * 232, -170 - (i / 3) * 62), new Vector2(222, 52));
+                var b = UI.Btn(_journalPanel, "· · ·", () => SelectNote(idx), 20, false, "Note" + i);   // needs a label, or the button has no Text to fill in
+                ((RectTransform)b.transform).Pin(new Vector2(0, 1), new Vector2(0, 1), new Vector2((i % 3) * 232, -224 - (i / 3) * 62), new Vector2(222, 52));
                 _noteButtons.Add(b.GetComponentInChildren<Text>());
             }
-            var paper = UI.Img(_journalPanel, UI.Rounded, UI.Hex("EFE4C6"), "Paper"); paper.rectTransform.Anchor(0, 0, 1, 1, new Vector2(0, 0), new Vector2(0, -306));
+            var paper = UI.Img(_journalPanel, UI.Rounded, UI.Hex("EFE4C6"), "Paper"); paper.rectTransform.Anchor(0, 0, 1, 1, new Vector2(0, 0), new Vector2(0, -360));
             _noteTitle = UI.Label(paper.transform, "", 28, UI.Hex("3B2F22"), TextAnchor.UpperLeft, FontStyle.Bold, true); _noteTitle.rectTransform.Anchor(0, 1, 1, 1, new Vector2(30, -62), new Vector2(-30, -20));
             _noteBody = UI.Label(paper.transform, "", 24, UI.Hex("4A3D2E"), TextAnchor.UpperLeft, FontStyle.Italic); _noteBody.rectTransform.Stretch(30, 24, 30, 76); _noteBody.lineSpacing = 1.25f;
         }
@@ -133,6 +156,14 @@ namespace LastShore
         public void Toggle() { if (Open) Close(); else Show(true); }
         public void OpenCrafting() { Show(true); }
 
+        /// <summary>Opens the backpack next to a storage chest.</summary>
+        public void OpenChest(StorageChest chest)
+        {
+            Show(true);
+            _chest = chest; _chestSel = -1; _selected = -1;
+            ShowTabIndex(3); Refresh();
+        }
+
         void Show(bool craftTab)
         {
             if (!Open)
@@ -149,7 +180,7 @@ namespace LastShore
         public void Close()
         {
             if (!Open) return;
-            Open = false; _selected = -1; GameManager.I.Hud.SetHotbarVisible(true);
+            Open = false; _selected = -1; _chest = null; _chestSel = -1; GameManager.I.Hud.SetHotbarVisible(true);
             GameManager.I.Inv.Changed -= Refresh;
             Tween.Fade(_group, 0, 0.15f, 0, () => { if (!Open) _canvas.gameObject.SetActive(false); });
         }
@@ -161,6 +192,7 @@ namespace LastShore
         void ShowTabIndex(int tab)
         {
             _craftPanel.gameObject.SetActive(tab == 0); _journalPanel.gameObject.SetActive(tab == 1); _mapPanel.gameObject.SetActive(tab == 2);
+            _chestPanel.gameObject.SetActive(tab == 3); if (tab != 3) { _chest = null; _chestSel = -1; }
             Color on = UI.Hex("3A2C14", 0.95f);
             _tabCraft.color = tab == 0 ? on : UI.BgSoft; _tabJournal.color = tab == 1 ? on : UI.BgSoft; _tabMap.color = tab == 2 ? on : UI.BgSoft;
             if (tab == 1) RefreshJournal();
@@ -179,11 +211,74 @@ namespace LastShore
         {
             var inv = GameManager.I.Inv;
             if (i >= inv.Unlocked) { GameManager.I.Hud.Hint("Craft a Hide Pack to carry more."); return; }
+            if (_chest != null && _chestSel >= 0)
+            {
+                Exchange(_chest.Slots, _chestSel, inv.Slots, i); _chestSel = -1;
+                AudioManager.I.UI("pickup", 0.4f); inv.NotifyChanged(); Refresh(); return;
+            }
             if (_selected == i) _selected = -1;
             else if (_selected >= 0 && !inv.Slots[_selected].Empty) { inv.Swap(_selected, i); _selected = -1; AudioManager.I.UI("pickup", 0.4f); }
             else _selected = inv.Slots[i].Empty ? -1 : i;
             Refresh();
         }
+
+        // ---------------------------------------------------------------- storage chest
+        /// <summary>Moves a stack between two slots: same items merge, different items trade places.</summary>
+        static void Exchange(ItemStack[] from, int a, ItemStack[] to, int b)
+        {
+            if (from == to && a == b) return;
+            var sa = from[a]; var sb = to[b];
+            if (!sa.Empty && !sb.Empty && sa.id == sb.id && sa.Def.Stack > 1)
+            {
+                int n = Mathf.Min(sa.count, sb.Def.Stack - sb.count);
+                sb.count += n; sa.count -= n; if (sa.count <= 0) sa.Clear();
+            }
+            else { from[a] = sb; to[b] = sa; }
+        }
+
+        /// <summary>Puts a stack into a container, topping up matching stacks first. Whatever does not fit stays behind.</summary>
+        static void Deposit(ItemStack s, ItemStack[] dest, int start, int end)
+        {
+            if (s.Def.Stack > 1)
+                for (int i = start; i < end && s.count > 0; i++)
+                {
+                    var d = dest[i];
+                    if (!d.Empty && d.id == s.id && d.count < s.Def.Stack) { int n = Mathf.Min(s.count, s.Def.Stack - d.count); d.count += n; s.count -= n; }
+                }
+            for (int i = start; i < end && s.count > 0; i++)
+                if (dest[i].Empty) { dest[i].id = s.id; dest[i].count = s.count; dest[i].durability = s.durability; s.count = 0; }
+            if (s.count <= 0) s.Clear();
+        }
+
+        void ClickChest(int i)
+        {
+            if (_chest == null) return;
+            var inv = GameManager.I.Inv;
+            if (_selected >= 0 && !inv.Slots[_selected].Empty) { Exchange(inv.Slots, _selected, _chest.Slots, i); _selected = -1; AudioManager.I.UI("pickup", 0.4f); inv.NotifyChanged(); }
+            else if (_chestSel == i) _chestSel = -1;
+            else if (_chestSel >= 0 && !_chest.Slots[_chestSel].Empty) { Exchange(_chest.Slots, _chestSel, _chest.Slots, i); _chestSel = -1; AudioManager.I.UI("pickup", 0.4f); }
+            else _chestSel = _chest.Slots[i].Empty ? -1 : i;
+            Refresh();
+        }
+
+        void StoreAll()
+        {
+            if (_chest == null) return;
+            var inv = GameManager.I.Inv;
+            for (int i = Inventory.HotbarSize; i < inv.Unlocked; i++) if (!inv.Slots[i].Empty) Deposit(inv.Slots[i], _chest.Slots, 0, StorageChest.Size);
+            _selected = -1; _chestSel = -1; AudioManager.I.UI("pickup", 0.5f); inv.NotifyChanged(); Refresh();
+        }
+
+        void TakeAll()
+        {
+            if (_chest == null) return;
+            var inv = GameManager.I.Inv;
+            foreach (var s in _chest.Slots) if (!s.Empty) Deposit(s, inv.Slots, Inventory.HotbarSize, inv.Unlocked);
+            foreach (var s in _chest.Slots) if (!s.Empty) Deposit(s, inv.Slots, 0, Inventory.HotbarSize);
+            _selected = -1; _chestSel = -1; AudioManager.I.UI("pickup", 0.5f); inv.NotifyChanged(); Refresh();
+        }
+
+        void SortPack() { _selected = -1; AudioManager.I.UI("pickup", 0.4f); GameManager.I.Inv.Sort(); Refresh(); }
 
         void UseSelected()
         {
@@ -227,6 +322,14 @@ namespace LastShore
                 _slotCount[i].text = !s.Empty && s.count > 1 ? s.count.ToString() : !s.Empty && s.Def.Durability > 0 ? Mathf.CeilToInt(100f * s.durability / s.Def.Durability) + "%" : "";
                 _slotBg[i].color = i >= inv.Unlocked ? UI.Hex("0A1118", 0.55f) : i == _selected ? UI.Hex("5A4320", 0.98f) : UI.Slot;
             }
+            if (_chest != null)
+                for (int i = 0; i < StorageChest.Size; i++)
+                {
+                    var s = _chest.Slots[i];
+                    _cIcon[i].enabled = !s.Empty; if (!s.Empty) _cIcon[i].sprite = s.Def.Icon;
+                    _cCount[i].text = !s.Empty && s.count > 1 ? s.count.ToString() : !s.Empty && s.Def.Durability > 0 ? Mathf.CeilToInt(100f * s.durability / s.Def.Durability) + "%" : "";
+                    _cBg[i].color = i == _chestSel ? UI.Hex("5A4320", 0.98f) : UI.Slot;
+                }
             var sel = _selected >= 0 ? inv.Slots[_selected] : null;
             bool has = sel != null && !sel.Empty;
             _detIcon.enabled = has; _useBtn.gameObject.SetActive(has); _dropBtn.gameObject.SetActive(has);
@@ -279,6 +382,7 @@ namespace LastShore
             var gm = GameManager.I;
             _jTitle.text = UI.Spaced("CURRENT OBJECTIVE  ·  " + gm.Quests.Title);
             _jBody.text = gm.Quests.Body;
+            _jCamp.text = Camp.Summary + "\nPLACES  ·  " + gm.DiscoveredCount + " of " + Landmark.All.Count + " discovered";
             for (int i = 0; i < _noteButtons.Count; i++)
             {
                 bool found = gm.Notes.Contains(i);

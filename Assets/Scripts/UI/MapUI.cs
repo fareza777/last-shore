@@ -65,6 +65,7 @@ namespace LastShore
     public class MapView : MonoBehaviour
     {
         RectTransform _map; Image _player; Text _info; GameObject _locked;
+        readonly GameObject[,] _fog = new GameObject[10, 10];
         readonly List<(Landmark l, Image dot, Text label)> _marks = new List<(Landmark, Image, Text)>();
 
         public static MapView Build(RectTransform parent)
@@ -75,6 +76,14 @@ namespace LastShore
             frame.gameObject.AddComponent<Mask>().showMaskGraphic = true;
             var sprite = Resources.Load<Sprite>("UI/IslandMap");
             var map = UI.Img(frame.transform, sprite, sprite != null ? Color.white : new Color(0.1f, 0.3f, 0.35f), "Map"); v._map = map.rectTransform; v._map.Stretch(6, 6, 6, 6);
+            for (int z = 0; z < 10; z++)
+                for (int x = 0; x < 10; x++)
+                {
+                    var f = UI.Img(v._map, null, new Color(0.035f, 0.08f, 0.11f, 0.94f), "Fog");
+                    f.rectTransform.anchorMin = new Vector2(x / 10f, z / 10f); f.rectTransform.anchorMax = new Vector2((x + 1) / 10f, (z + 1) / 10f);
+                    f.rectTransform.offsetMin = new Vector2(-0.5f, -0.5f); f.rectTransform.offsetMax = new Vector2(0.5f, 0.5f);
+                    v._fog[x, z] = f.gameObject;
+                }
             v._player = UI.Img(v._map, UI.Icon("marker"), UI.WaterCol, "Player"); v._player.rectTransform.sizeDelta = new Vector2(24, 26);
             v._locked = UI.Img(parent, UI.Rounded, new Color(0.03f, 0.06f, 0.09f, 0.94f), "Locked").gameObject; ((RectTransform)v._locked.transform).Stretch(0, 0, 0, 40);
             var msg = UI.Label(v._locked.transform, "You have no chart of this island.\n\nTomas's notes mention a brass compass lost with a small plane\nsomewhere in the western jungle.", 24, UI.TextCol, TextAnchor.MiddleCenter);
@@ -102,7 +111,14 @@ namespace LastShore
             var gm = GameManager.I; bool has = gm.Inv.Count("compass") > 0;
             if (_marks.Count != Landmark.All.Count) BuildMarks();
             _locked.SetActive(!has);
-            _info.text = UI.Spaced("PLACES DISCOVERED  " + gm.DiscoveredCount + " / " + Landmark.All.Count);
+            int seen = 0;
+            for (int z = 0; z < 10; z++)
+                for (int x = 0; x < 10; x++)
+                {
+                    bool open = gm.Flags.Contains("map_" + x + "_" + z); if (open) seen++;
+                    _fog[x, z].SetActive(!open);
+                }
+            _info.text = UI.Spaced("PLACES  " + gm.DiscoveredCount + " / " + Landmark.All.Count + "     EXPLORED  " + seen + "%");
             foreach (var (l, dot, label) in _marks)
             {
                 bool found = l != null && l.Found;

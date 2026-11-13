@@ -5,6 +5,7 @@ namespace LastShore
     /// <summary>Patrols the deep water. Circles a swimmer before closing in; it cannot follow into the shallows.</summary>
     public class Shark : Animal
     {
+        public override bool Hostile => true;
         enum S { Patrol, Stalk, Attack, Retreat }
         S _state; Vector3 _target; float _timer, _orbit; int _side = 1;
         Transform _tail;
@@ -70,7 +71,7 @@ namespace LastShore
                         Swim(toPlayer, 7.5f, 5f);
                         if (dist < 2.2f)
                         {
-                            GM.Vitals.Damage(Random.Range(22f, 30f), "a shark"); AudioManager.I.Play("bite", 1f);
+                            GM.Vitals.Damage(Random.Range(22f, 30f), "a shark", true, transform.position); AudioManager.I.Play("bite", 1f);
                             FX.Burst(PlayerT.position + Vector3.up, new Color(0.9f, 0.95f, 1f, 0.8f), 20, 0.12f, 4f);
                             _target = transform.position - toPlayer.normalized * 25f; _state = S.Retreat; _timer = 4.5f;
                         }

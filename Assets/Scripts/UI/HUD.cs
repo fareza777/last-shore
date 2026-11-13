@@ -112,6 +112,29 @@ namespace LastShore
             _dayText = UI.Label(ck, "DAY 1", 26, UI.TextCol, TextAnchor.UpperRight, FontStyle.Bold).Shadowed(); _dayText.rectTransform.Anchor(0, 0.5f, 1, 1, new Vector2(0, 0), new Vector2(-52, 0));
             _clock = UI.Label(ck, "06:00", 20, UI.Dim, TextAnchor.LowerRight).Shadowed(); _clock.rectTransform.Anchor(0, 0, 1, 0.5f, new Vector2(0, 2), new Vector2(-52, 0));
 
+            // ---- tip card (one-time hints)
+            var tip = UI.Img(_safe, UI.Rounded, UI.Bg, "Tip"); _tipRt = tip.rectTransform;
+            _tipRt.Pin(new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -132), new Vector2(900, 62)); _tipG = tip.Group(); _tipG.alpha = 0; _tipG.blocksRaycasts = false;
+            var tipTag = UI.Img(tip.transform, UI.RoundedSmall, UI.Accent, "Tag"); tipTag.rectTransform.Pin(new Vector2(0, 0.5f), new Vector2(0, 0.5f), new Vector2(14, 0), new Vector2(62, 34));
+            UI.Label(tipTag.transform, "TIP", 18, UI.Hex("1A1206"), TextAnchor.MiddleCenter, FontStyle.Bold).rectTransform.Stretch();
+            _tipText = UI.Label(tip.transform, "", 23, UI.TextCol, TextAnchor.MiddleLeft); _tipText.rectTransform.Stretch(90, 4, 18, 4); _tipText.horizontalOverflow = HorizontalWrapMode.Overflow;
+
+            // ---- how much is left of the tree or rock being worked
+            _nodeFill = UI.Bar(_safe, UI.Accent, out var nodeRt, "NodeBar");
+            nodeRt.Pin(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, -50), new Vector2(160, 14)); _nodeG = nodeRt.Group(); _nodeG.alpha = 0;
+
+            // ---- where a hit came from, and where the nearest hostile animal is
+            _dmgRt = UI.Rect("DamageDir", _safe).Pin(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(10, 10));
+            var arrow = UI.Img(_dmgRt, UI.Icon("marker"), UI.Danger, "Arrow"); arrow.rectTransform.Pin(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, 215), new Vector2(58, 50));
+            _dmgG = _dmgRt.Group(); _dmgG.alpha = 0;
+            var th = UI.Img(_safe, UI.Icon("marker"), UI.Danger, "Threat"); _threat = th.rectTransform; _threat.Pin(new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -78), new Vector2(26, 23));
+            th.gameObject.SetActive(false);
+
+            // ---- fishing: land the marker inside the green zone
+            var fb = UI.Img(_safe, UI.Pill, UI.Bg, "FishBar"); var fbRt = fb.rectTransform;
+            fbRt.Pin(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, -140), new Vector2(FishW + 20, 30)); _fishG = fb.Group(); _fishG.alpha = 0;
+            _fishZone = UI.Img(fb.transform, UI.Pill, UI.Good, "Zone").rectTransform; _fishCursor = UI.Img(fb.transform, UI.Pill, UI.TextCol, "Cursor").rectTransform;
+
             // ---- toasts, hint, banner, subtitles
             _toasts = UI.Rect("Toasts", _safe).Pin(new Vector2(1, 0.5f), new Vector2(1, 0.5f), new Vector2(-36, -60), new Vector2(360, 400));
             _hint = UI.Label(_safe, "", 28, UI.TextCol, TextAnchor.MiddleCenter, FontStyle.Bold).Shadowed(0.8f, 2.5f);
@@ -145,10 +168,79 @@ namespace LastShore
             gm.Inv.Changed += RefreshHotbar;
             gm.Interaction.SelectionChanged += () => { RefreshHotbar(); ShowItemName(); };
             gm.Vitals.Damaged += amount => { _hurtA = Mathf.Clamp01(_hurtA + amount / 22f + 0.25f); };
+            gm.Vitals.HitFrom += pos => { _dmgPos = pos; _dmgA = 1f; };
             RefreshHotbar();
         }
 
-        RectTransform _hotbar;
+        RectTransform _hotbar, _tipRt, _dmgRt, _threat, _fishZone, _fishCursor;
+        CanvasGroup _tipG, _nodeG, _dmgG, _fishG; Text _tipText; Image _nodeFill; Coroutine _nodeC;
+        readonly Queue<string> _tips = new Queue<string>(); float _tipTimer, _dmgA; Vector3 _dmgPos; Transform _threatT;
+        const float FishW = 440f;
+
+        /// <summary>Queues a one-time hint card under the compass.</summary>
+        public void Tip(string text) { _tips.Enqueue(text); }
+
+        /// <summary>Shows how much of a tree or rock is left (1 = untouched, 0 = done).</summary>
+        public void NodeBar(float fraction)
+        {
+            _nodeFill.fillAmount = fraction;
+            Tween.Stop(_nodeC); _nodeG.alpha = 1;
+            _nodeC = Tween.Fade(_nodeG, 0, 0.4f, 1.3f);
+        }
+
+        /// <summary>Fishing reel bar: cursor and zone are 0..1 along the bar, width is the zone's share of it.</summary>
+        public void FishBar(bool show, float cursor, float zone, float width)
+        {
+            _fishG.alpha = show ? 1 : 0;
+            if (!show) return;
+            _fishZone.Pin(new Vector2(0, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(10 + zone * FishW, 0), new Vector2(width * FishW, 20));
+            _fishCursor.Pin(new Vector2(0, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(10 + cursor * FishW, 0), new Vector2(9, 40));
+        }
+
+        void UpdateFeedback(GameManager gm, float yaw, float half, float dt)
+        {
+            // tip queue: one card at a time
+            _tipTimer -= dt;
+            if (_tipTimer <= 0 && _tips.Count > 0 && !gm.Cinematic)
+            {
+                _tipText.text = _tips.Dequeue(); _tipTimer = 7.5f;
+                _tipRt.sizeDelta = new Vector2(Mathf.Clamp(_tipText.preferredWidth + 124, 320, 1500), 62);
+                _tipRt.anchoredPosition = new Vector2(0, -132);
+                Tween.SlideIn(_tipRt, _tipG, new Vector2(0, 30), 0.45f);
+                Tween.Fade(_tipG, 0, 0.6f, 6.6f);
+                AudioManager.I.UI("ui_open", 0.35f);
+            }
+
+            // hit direction: the arrow sits on the side the blow came from
+            _dmgA = Mathf.MoveTowards(_dmgA, 0, dt * 0.55f); _dmgG.alpha = Mathf.Clamp01(_dmgA * 1.6f);
+            if (_dmgA > 0)
+            {
+                Vector3 to = _dmgPos - gm.Player.transform.position;
+                _dmgRt.localRotation = Quaternion.Euler(0, 0, -Mathf.DeltaAngle(yaw, Mathf.Atan2(to.x, to.z) * Mathf.Rad2Deg));
+            }
+
+            // nearest animal that is hunting the player, shown on the compass
+            bool threat = _threatT != null;
+            if (_threat.gameObject.activeSelf != threat) _threat.gameObject.SetActive(threat);
+            if (threat)
+            {
+                Vector3 to = _threatT.position - gm.Player.transform.position;
+                float d = Mathf.DeltaAngle(yaw, Mathf.Atan2(to.x, to.z) * Mathf.Rad2Deg);
+                _threat.anchoredPosition = new Vector2(Mathf.Clamp(d / 100f, -1f, 1f) * half, -78);
+                _threat.localScale = Vector3.one * (1f + Mathf.Sin(Time.unscaledTime * 9f) * 0.18f);
+            }
+        }
+
+        void FindThreat(GameManager gm)
+        {
+            _threatT = null; float best = 45f * 45f; Vector3 p = gm.Player.transform.position;
+            foreach (var a in Animal.All)
+            {
+                if (!a.Engaged || !a.Hostile) continue;
+                float d = (a.transform.position - p).sqrMagnitude;
+                if (d < best) { best = d; _threatT = a.transform; }
+            }
+        }
         public void SetHotbarVisible(bool visible) { _hotbar.gameObject.SetActive(visible); }
         public void SetVisible(bool visible) { Tween.Fade(_root, visible ? 1 : 0, 0.5f); }
 
@@ -201,15 +293,18 @@ namespace LastShore
                 _evMarker.anchoredPosition = new Vector2(Mathf.Clamp(d / 100f, -1f, 1f) * half, -78);
             }
 
+            UpdateFeedback(gm, yaw, half, dt);
+
             _slow -= dt;
             if (_slow <= 0)
             {
-                _slow = 0.5f;
+                _slow = 0.5f; FindThreat(gm);
                 _dayText.text = "DAY " + gm.Sky.Day; _clock.text = gm.Sky.ClockText() + WeatherText(gm.Weather.State);
                 _clockIcon.sprite = UI.Icon(gm.Sky.IsNight ? "moon" : "sun"); _clockIcon.color = gm.Sky.IsNight ? UI.Hex("BFD2FF") : UI.Accent;
                 string s = "";
                 if (v.NearFire) s += "BY THE FIRE   "; else if (v.Sheltered) s += "SHELTERED   ";
                 if (v.PoisonTime > 0) s += "POISONED   ";
+                if (v.Hearty > 0) s += "HEARTY   "; else if (v.WellFed > 0) s += "WELL FED   ";
                 if (v.Wet) s += "WET   "; if (v.Warmth < 30) s += "FREEZING   ";
                 if (v.Hunger < 15) s += "STARVING   "; if (v.Thirst < 15) s += "DEHYDRATED   "; if (v.Exhausted) s += "EXHAUSTED";
                 _status.text = s;

@@ -6,7 +6,7 @@ namespace LastShore
     public class BuildSystem : MonoBehaviour
     {
         public bool Active => _ghost != null && _ghost.activeSelf;
-        GameObject _ghost; string _ghostId; float _rot; bool _valid; Vector3 _pos;
+        GameObject _ghost; string _ghostId; float _rot; bool _valid, _needsWater; Vector3 _pos;
         Material _ok, _bad; Renderer[] _renderers;
         readonly Collider[] _overlap = new Collider[16];
 
@@ -44,7 +44,11 @@ namespace LastShore
             float yaw = gm.Player.Yaw + 180f + _rot;
             _ghost.transform.SetPositionAndRotation(p, Quaternion.Euler(0, yaw, 0));
 
-            _valid = World.IsLand(p, 0.35f) && World.Slope(p) < 24f && (p - gm.Player.transform.position).magnitude < 8f;
+            bool trap = def.PlacePrefab == "FishTrap";      // the one structure that belongs in the water
+            float ground = World.Height(p);
+            bool spot = trap ? ground < World.SeaLevel - 0.1f && ground > World.SeaLevel - 1.1f : World.IsLand(p, 0.35f);
+            _valid = spot && World.Slope(p) < 24f && (p - gm.Player.transform.position).magnitude < 8f;
+            _needsWater = trap && !spot;
             if (_valid)
             {
                 float radius = def.PlacePrefab == "Shelter" ? 1.5f : 0.75f;
@@ -63,7 +67,7 @@ namespace LastShore
         {
             var gm = GameManager.I;
             if (!Active) return;
-            if (!_valid) { gm.Hud.Hint("You can't build here."); return; }
+            if (!_valid) { gm.Hud.Hint(_needsWater ? "A fish trap has to stand in shallow water." : "You can't build here."); return; }
             var def = gm.Interaction.Current.Def;
             var s = gm.SpawnStructure(def.PlacePrefab, _pos, _ghost.transform.eulerAngles.y);
             if (s == null) return;
@@ -74,6 +78,7 @@ namespace LastShore
             s.transform.localScale = Vector3.one * 0.85f;
             Tween.Scale(s.transform, Vector3.one, 0.4f, Ease.OutBack);
             gm.Quests.Notify("place", def.PlacePrefab);
+            gm.Register(s); Camp.Check();
             gm.SaveGame();
         }
     }

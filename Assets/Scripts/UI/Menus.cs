@@ -24,7 +24,7 @@ namespace LastShore
             Slider(rt, "Look sensitivity", ref y, 0.3f, 2.5f, GameSettings.Sensitivity, v => GameSettings.Sensitivity = v);
             Slider(rt, "Field of view", ref y, 55, 95, GameSettings.Fov, v => GameSettings.Fov = v);
             string[] q = { "LOW", "MEDIUM", "HIGH" };
-            Choice(rt, "Graphics quality", ref y, () => q[GameSettings.Quality], () => { GameSettings.Quality = (GameSettings.Quality + 1) % 3; GameSettings.Apply(); });
+            Choice(rt, "Graphics quality", ref y, () => q[GameSettings.Quality], () => { GameSettings.Quality = (GameSettings.Quality + 1) % 3; GameSettings.QualityLocked = true; GameSettings.Apply(); });
             Choice(rt, "Subtitles", ref y, () => GameSettings.Subtitles ? "ON" : "OFF", () => GameSettings.Subtitles = !GameSettings.Subtitles);
             Choice(rt, "Head bob", ref y, () => GameSettings.HeadBob ? "ON" : "OFF", () => GameSettings.HeadBob = !GameSettings.HeadBob);
             Choice(rt, "Invert vertical look", ref y, () => GameSettings.InvertY ? "ON" : "OFF", () => GameSettings.InvertY = !GameSettings.InvertY);

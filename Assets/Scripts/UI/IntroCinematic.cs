@@ -86,9 +86,11 @@ namespace LastShore
                 Tween.Delay(this, Random.Range(0.3f, 1.1f), () => AudioManager.I.Play("thunder", 0.85f, 0.12f), false);
             }
             float flicker = _flash * (0.6f + Mathf.PerlinNoise(t * 30f, 3f) * 0.6f);
-            if (_light != null) _light.intensity = 0.22f + flicker * 3.2f;
-            RenderSettings.ambientLight = new Color(0.05f, 0.065f, 0.09f) + Color.white * flicker * 0.3f;
-            RenderSettings.fogColor = new Color(0.035f, 0.05f, 0.07f) + new Color(0.5f, 0.55f, 0.65f) * flicker * 0.5f;
+            // without HDR and bloom the storm reads as plain black, so those tiers get more base light
+            float lift = GameSettings.FullLighting ? 1f : 7f;
+            if (_light != null) _light.intensity = 0.22f * lift + flicker * 3.2f;
+            RenderSettings.ambientLight = new Color(0.05f, 0.065f, 0.09f) * lift + Color.white * flicker * 0.3f;
+            RenderSettings.fogColor = new Color(0.035f, 0.05f, 0.07f) * Mathf.Sqrt(lift) + new Color(0.5f, 0.55f, 0.65f) * flicker * 0.5f;
             Shader.SetGlobalColor("_LS_Horizon", RenderSettings.fogColor);
             Shader.SetGlobalFloat("_LS_Day", 0.1f + flicker * 0.5f);
         }

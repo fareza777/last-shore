@@ -8,6 +8,7 @@ namespace LastShore
     /// </summary>
     public class Boar : Animal
     {
+        public override bool Hostile => true;
         enum S { Graze, Alert, Charge, Recover, Circle, Flee, Return }
         S _state; Vector3 _target, _chargeDir; float _timer, _grunt = 4f, _legPhase, _circleSide = 1; bool _hitDone, _provoked;
         Transform[] _legs;
@@ -75,7 +76,7 @@ namespace LastShore
                         if (!_hitDone && dist < 1.7f && Threat)
                         {
                             _hitDone = true;
-                            GM.Vitals.Damage(Random.Range(15f, 22f), "a wild boar");
+                            GM.Vitals.Damage(Random.Range(15f, 22f), "a wild boar", true, transform.position);
                             Set(S.Recover, 0.9f);
                         }
                         else if (!moved || _timer <= 0 || Vector3.Dot(_chargeDir, toPlayer) < -3f) Set(S.Recover, 1.2f);

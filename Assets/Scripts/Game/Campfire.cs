@@ -31,7 +31,8 @@ namespace LastShore
             if (Lit)
             {
                 bool rain = GameManager.I != null && GameManager.I.Weather.Raining;
-                Fuel -= Time.deltaTime * (rain ? 1.6f : 1f);
+                bool open = rain && !Shelter.AnyNear(transform.position, 5f);   // rain drowns a fire with no roof beside it
+                Fuel -= Time.deltaTime * (open ? 6f : rain ? 1.4f : 1f);
                 if (Fuel <= 0) { Fuel = 0; Lit = false; }
             }
             if (Lit != _shown)

@@ -14,7 +14,10 @@ namespace LastShore
         public static float Sensitivity = 1f, Fov = 70f;
         public static bool InvertY, Subtitles = true, HeadBob = true, Vibration = true;
         public static int Quality = 2; // 0 low, 1 medium, 2 high
+        public static bool QualityLocked;  // the player picked a tier by hand: never lower it automatically
         public static event Action Changed;
+        /// <summary>Real shadow maps, HDR and post-processing. On phones only the High tier can afford them.</summary>
+        public static bool FullLighting => Quality == 2 || (Quality == 1 && !Application.isMobilePlatform);
 
         static bool _loaded;
 
@@ -32,7 +35,8 @@ namespace LastShore
             Subtitles = PlayerPrefs.GetInt("s_subs", 1) == 1;
             HeadBob = PlayerPrefs.GetInt("s_bob", 1) == 1;
             Vibration = PlayerPrefs.GetInt("s_vib", 1) == 1;
-            Quality = PlayerPrefs.GetInt("s_quality3", Application.isMobilePlatform ? 0 : 2);
+            Quality = PlayerPrefs.GetInt("s_quality4", Application.isMobilePlatform ? 1 : 2);
+            QualityLocked = PlayerPrefs.GetInt("s_qlock", 0) == 1;
             Apply();
         }
 
@@ -48,7 +52,7 @@ namespace LastShore
             PlayerPrefs.SetInt("s_subs", Subtitles ? 1 : 0);
             PlayerPrefs.SetInt("s_bob", HeadBob ? 1 : 0);
             PlayerPrefs.SetInt("s_vib", Vibration ? 1 : 0);
-            PlayerPrefs.SetInt("s_quality3", Quality);
+            PlayerPrefs.SetInt("s_quality4", Quality); PlayerPrefs.SetInt("s_qlock", QualityLocked ? 1 : 0);
             PlayerPrefs.Save();
             Apply();
         }
@@ -61,14 +65,14 @@ namespace LastShore
             if (urp != null)
             {
                 bool mobile = Application.isMobilePlatform;
-                urp.shadowDistance = Quality == 0 ? 1f : Quality == 1 ? (mobile ? 32f : 60f) : 120f;
-                urp.shadowCascadeCount = Quality == 2 ? 3 : 1;
-                urp.renderScale = Quality == 0 ? (mobile ? 0.6f : 0.8f) : Quality == 1 ? (mobile ? 0.75f : 0.9f) : 1f;
-                urp.supportsHDR = Quality > 0;
+                urp.shadowDistance = !FullLighting ? 1f : mobile ? 32f : Quality == 1 ? 60f : 120f;
+                urp.shadowCascadeCount = Quality == 2 && !mobile ? 3 : 1;
+                urp.renderScale = Quality == 0 ? (mobile ? 0.6f : 0.8f) : Quality == 1 ? (mobile ? 0.7f : 0.9f) : (mobile ? 0.75f : 1f);
+                urp.supportsHDR = FullLighting;
                 urp.supportsCameraDepthTexture = false;   // the water reads a baked shore map instead
             }
             QualitySettings.lodBias = Quality == 0 ? 0.6f : Quality == 1 ? 0.9f : 1.5f;
-            Shader.SetGlobalFloat("_LS_Lite", Quality == 0 ? 1f : 0f);
+            Shader.SetGlobalFloat("_LS_Lite", FullLighting ? 0f : 1f);   // the grain texture costs three samples per pixel
             Application.targetFrameRate = Application.isMobilePlatform ? 60 : -1;
             QualitySettings.vSyncCount = Application.isMobilePlatform ? 0 : 1;
             Changed?.Invoke();
@@ -76,9 +80,7 @@ namespace LastShore
 
         public static void Vibrate()
         {
-#if UNITY_ANDROID || UNITY_IOS
-            if (Vibration && Application.isMobilePlatform) Handheld.Vibrate();
-#endif
+            Haptics.Pulse(60);
         }
     }
 }

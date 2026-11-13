@@ -72,7 +72,7 @@ namespace LastShore
         readonly Dictionary<int, WorldNode> _nodes = new Dictionary<int, WorldNode>();
         readonly Dictionary<int, float> _removedUntil = new Dictionary<int, float>();
         readonly List<PlacedStructure> _placed = new List<PlacedStructure>();
-        float _autosave, _fpsTime; int _fpsFrames;
+        float _autosave, _fpsTime, _exploreT; int _fpsFrames, _slowWindows;
 
         public bool MenuOpen => (InvUI != null && InvUI.Open) || (Pause != null && Pause.Open);
         public bool InputLocked => Cinematic || Dead || MenuOpen;
@@ -101,6 +101,16 @@ namespace LastShore
             Shader.SetGlobalVector("_LS_ShoreParams", new Vector4(1f / World.Size, World.SeaLevel - World.ShoreLow, World.ShoreRange, shore != null ? 1f : 0f));
             ApplyQuality(); GameSettings.Changed += ApplyQuality;
             gameObject.AddComponent<AnimalSpawner>();
+            gameObject.AddComponent<BlobShadows>();
+            gameObject.AddComponent<Tips>();
+            // wet sand: a dark film just above the sea, visible only along the waterline
+            var sea = GameObject.Find("Sea"); var wet = Resources.Load<Material>("Materials/WetSand");
+            if (sea != null && wet != null)
+            {
+                var film = Instantiate(sea, sea.transform.parent); film.name = "WetSand";
+                film.transform.position = sea.transform.position + Vector3.up * 0.4f;
+                film.GetComponent<Renderer>().sharedMaterial = wet;
+            }
             gameObject.AddComponent<WorldStreamer>();
             Events = gameObject.AddComponent<EventDirector>();
         }
@@ -113,6 +123,8 @@ namespace LastShore
             if (data != null) ApplySave(data);
             else StartCoroutine(NewGameSequence());
             Vitals.Died += OnDied;
+            // never leave the player stuck in a menu while something is biting them
+            Vitals.Damaged += _ => { if (InvUI.Open) { InvUI.Close(); Hud.Hint("You are under attack!", 2f, true); } };
             Inv.Added += (def, n) => { Hud.Toast("+" + n + "  " + def.Name, def.Icon); Quests.Notify("pickup", def.Id); };
             Sky.NewDay += d => { Hud.Banner("DAY " + d, DayLine(d)); Quests.Notify("newday"); RespawnNodes(); SaveGame(); };
         }
@@ -142,7 +154,24 @@ namespace LastShore
             if (Dead || Cinematic) { ApplyCursor(); return; }
             PlaySeconds += Time.deltaTime;
             _fpsFrames++; _fpsTime += Time.unscaledDeltaTime;
-            if (_fpsTime >= 5f) { Debug.Log("[FPS] " + (_fpsFrames / _fpsTime).ToString("0.0") + " quality=" + GameSettings.Quality + " " + Screen.width + "x" + Screen.height); _fpsFrames = 0; _fpsTime = 0; }
+            if (_fpsTime >= 5f)
+            {
+                float fps = _fpsFrames / _fpsTime; _fpsFrames = 0; _fpsTime = 0;
+                Debug.Log("[FPS] " + fps.ToString("0.0") + " quality=" + GameSettings.Quality + " " + Screen.width + "x" + Screen.height);
+                // a phone that cannot hold the chosen tier drops one step by itself, unless the player picked it by hand
+                if (Application.isMobilePlatform && GameSettings.Quality > 0 && !GameSettings.QualityLocked && !MenuOpen)
+                {
+                    _slowWindows = fps < 27f ? _slowWindows + 1 : 0;
+                    if (_slowWindows >= 3) { _slowWindows = 0; GameSettings.Quality--; GameSettings.Save(); Hud.Toast("Graphics lowered for smoother play"); }
+                }
+            }
+            _exploreT -= Time.deltaTime;
+            if (_exploreT <= 0)
+            {
+                _exploreT = 1f; Vector3 pp = Player.transform.position;
+                for (int ox = -1; ox <= 1; ox++) for (int oz = -1; oz <= 1; oz++)
+                    Flags.Add("map_" + Mathf.Clamp(Mathf.FloorToInt((pp.x + ox * 45f) / 100f), 0, 9) + "_" + Mathf.Clamp(Mathf.FloorToInt((pp.z + oz * 45f) / 100f), 0, 9));
+            }
             if (GameInput.Pause) { if (InvUI.Open) InvUI.Close(); else Pause.Toggle(); }
             else if (GameInput.Inventory && !Pause.Open) InvUI.Toggle();
             _autosave += Time.deltaTime;
@@ -176,6 +205,7 @@ namespace LastShore
         }
 
         public void Register(PlacedStructure s) { if (!_placed.Contains(s)) _placed.Add(s); }
+        public int CountPlaced(string prefab) { int n = 0; foreach (var s in _placed) if (s != null && s.Prefab == prefab) n++; return n; }
         public void Unregister(PlacedStructure s) { _placed.Remove(s); }
 
         public PlacedStructure SpawnStructure(string prefab, Vector3 pos, float rot)
@@ -257,17 +287,18 @@ namespace LastShore
             var t = Terrain.activeTerrain;
             if (t != null)
             {
-                t.detailObjectDensity = q == 0 ? 0f : q == 1 ? 0.55f : 1f; t.detailObjectDistance = q == 0 ? 20 : q == 1 ? 50 : 80;
-                t.heightmapPixelError = q == 0 ? 22 : q == 1 ? 10 : 5; t.basemapDistance = q == 0 ? 60 : q == 1 ? 110 : 220;
-                t.shadowCastingMode = q == 0 ? UnityEngine.Rendering.ShadowCastingMode.Off : UnityEngine.Rendering.ShadowCastingMode.On;
+                bool phone = Application.isMobilePlatform;
+                t.detailObjectDensity = q == 0 ? 0f : q == 1 ? (phone ? 0.3f : 0.55f) : (phone ? 0.6f : 1f); t.detailObjectDistance = q == 0 ? 20 : q == 1 ? (phone ? 28 : 50) : (phone ? 50 : 80);
+                t.heightmapPixelError = q == 0 ? 7 : q == 1 ? 6 : 5;   // a coarse terrain mesh drifts off the true height and buries the surf, wet sand and blob shadows t.basemapDistance = q == 0 ? 60 : q == 1 ? 110 : 220;
+                t.shadowCastingMode = GameSettings.FullLighting ? UnityEngine.Rendering.ShadowCastingMode.On : UnityEngine.Rendering.ShadowCastingMode.Off;
             }
-            if (RenderSettings.sun != null) RenderSettings.sun.shadows = q == 0 ? LightShadows.None : LightShadows.Soft;
+            if (RenderSettings.sun != null) RenderSettings.sun.shadows = GameSettings.FullLighting ? LightShadows.Soft : LightShadows.None;
             if (Player != null && Player.Cam != null)
             {
                 Player.Cam.farClipPlane = q == 0 ? 520f : q == 1 ? 1000f : 1800f;
                 var data = Player.Cam.GetUniversalAdditionalCameraData();
-                data.renderPostProcessing = q > 0;
-                data.antialiasing = q == 0 ? AntialiasingMode.None : Application.isMobilePlatform ? AntialiasingMode.FastApproximateAntialiasing : AntialiasingMode.SubpixelMorphologicalAntiAliasing;
+                data.renderPostProcessing = GameSettings.FullLighting;
+                data.antialiasing = !GameSettings.FullLighting ? AntialiasingMode.None : Application.isMobilePlatform ? AntialiasingMode.FastApproximateAntialiasing : AntialiasingMode.SubpixelMorphologicalAntiAliasing;
             }
         }
 

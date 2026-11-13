@@ -5,6 +5,7 @@ namespace LastShore
     /// <summary>Lies coiled and hard to see. Hisses a warning when you come close, strikes if you ignore it, then slips away.</summary>
     public class Snake : Animal
     {
+        public override bool Hostile => true;
         enum S { Coiled, Warn, Strike, Retreat }
         S _state; float _timer, _wave; Vector3 _target; bool _hissed;
         Transform[] _segs;
@@ -45,7 +46,7 @@ namespace LastShore
                         Step(d, 7f, 20f);
                         if (_timer <= 0)
                         {
-                            if (PlayerDist < 1.6f && Threat) { GM.Vitals.Damage(7f, "a snake bite"); GM.Vitals.Poison(50f); GM.SayOnce("snake"); }
+                            if (PlayerDist < 1.6f && Threat) { GM.Vitals.Damage(7f, "a snake bite", true, transform.position); GM.Vitals.Poison(50f); GM.SayOnce("snake"); }
                             _target = transform.position - d.normalized * 14f + new Vector3(Random.Range(-4f, 4f), 0, Random.Range(-4f, 4f));
                             _state = S.Retreat; _timer = 6f;
                         }
