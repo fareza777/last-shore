@@ -14,7 +14,11 @@ namespace LastShore.EditorTools
         [MenuItem("Last Shore/5. Build Android APK")]
         public static void BuildAndroid()
         {
+            MonetizationSetup.Apply();
+            MonetizationSetup.WarnIfTestAds();
             Directory.CreateDirectory("Builds");
+            EditorUserBuildSettings.development = false;
+            EditorUserBuildSettings.allowDebugging = false;
             EditorUserBuildSettings.buildAppBundle = false;
             var options = new BuildPlayerOptions
             {

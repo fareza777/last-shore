@@ -63,6 +63,18 @@ namespace LastShore
 
         public void Drink(float amount) { Thirst = Mathf.Clamp(Thirst + amount, 0, 100); }
 
+        /// <summary>Back on your feet after a rewarded revive.</summary>
+        public void Revive()
+        {
+            Health = 55;
+            Hunger = Mathf.Max(Hunger, 45);
+            Thirst = Mathf.Max(Thirst, 45);
+            Stamina = 60;
+            Warmth = Mathf.Max(Warmth, 60);
+            PoisonTime = 0;
+            _lowWarned = false;
+        }
+
         public void Rest(float hours)
         {
             Stamina = 100; Exhausted = false;

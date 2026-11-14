@@ -7,7 +7,7 @@ namespace LastShore
     public static class GameSettings
     {
         public const string GameTitle = "LAST SHORE";
-        public const string Studio = "FABLE 62";
+        public const string Studio = "F7 Developer";
         public const string ShareText = "I'm stranded on a wild island in Last Shore. Can you survive and sail home?";
 
         public static float Master = 1f, Ambience = 0.8f, Sfx = 0.9f, Voice = 1f;

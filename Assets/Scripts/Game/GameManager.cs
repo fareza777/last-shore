@@ -58,6 +58,7 @@ namespace LastShore
         public PauseMenu Pause { get; private set; }
 
         public bool Cinematic, Dead;
+        public bool ReviveUsed;
         public float PlaySeconds;
         public readonly List<int> Notes = new List<int>();
         public readonly List<int> LootedCrates = new List<int>();
@@ -83,6 +84,8 @@ namespace LastShore
             I = this;
             Time.timeScale = 1f;
             GameSettings.Load();
+            Monetization.Init();
+            Monetization.Ads.HideBanner();
             Inv = new Inventory();
             Sky = GetOrAdd<DayNight>(); Weather = GetOrAdd<Weather>(); Quests = GetOrAdd<Quests>(); Build = GetOrAdd<BuildSystem>();
             foreach (var n in FindObjectsByType<WorldNode>(FindObjectsInactive.Include, FindObjectsSortMode.None)) _nodes[n.Id] = n;
@@ -279,6 +282,20 @@ namespace LastShore
 
         public void ReloadLastSave() { StartNewGame = false; SceneFader.Load("Game"); }
         public void QuitToMenu(bool save) { if (save) SaveGame(); SceneFader.Load("MainMenu"); }
+
+        /// <summary>Second chance bought with a rewarded ad: back on your feet where you fell.</summary>
+        public void ReviveFromAd()
+        {
+            if (!Dead) return;
+            Dead = false;
+            ReviveUsed = true;
+            if (Hud != null) Hud.HideDeath();
+            Vitals.Revive();
+            Player.Revive();
+            if (AdsManager.Instance != null) AdsManager.Instance.HideBanner();
+            Hud.Hint("You gasp back to life. Find food and fire.", 4f, true);
+            SaveGame();
+        }
 
         void OnApplicationPause(bool paused) { if (paused && !Dead && !Cinematic && Player != null) SaveGame(); }
         void ApplyQuality()

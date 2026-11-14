@@ -8,6 +8,7 @@ namespace LastShore
     public class HUD : MonoBehaviour
     {
         Canvas _canvas; CanvasGroup _root; RectTransform _safe;
+        Canvas _death; Text _deathStatus; bool _reviveBusy;
         Image _hp, _food, _water, _stam, _warm; Text _status;
         readonly Image[] _slotBg = new Image[Inventory.HotbarSize], _slotIcon = new Image[Inventory.HotbarSize], _slotDur = new Image[Inventory.HotbarSize];
         readonly Text[] _slotCount = new Text[Inventory.HotbarSize];
@@ -433,23 +434,72 @@ namespace LastShore
         public void ShowDeath(int day, string cause)
         {
             Tween.Fade(_root, 0, 1f);
+            if (_death != null) Destroy(_death.gameObject);
             var canvas = UI.MakeCanvas("Death", 50);
+            _death = canvas;
             var g = canvas.Group(); g.alpha = 0;
             var bg = UI.Img(canvas.transform, null, new Color(0.04f, 0.01f, 0.01f, 0.86f), "Bg", true); bg.rectTransform.Stretch();
             var title = UI.Label(canvas.transform, UI.Spaced("YOU DID NOT SURVIVE", 2), 70, UI.TextCol, TextAnchor.MiddleCenter, FontStyle.Bold, true);
             title.rectTransform.Pin(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, 150), new Vector2(1600, 100));
             var sub = UI.Label(canvas.transform, "Day " + day + "  ·  Lost to " + cause, 30, UI.Accent, TextAnchor.MiddleCenter);
             sub.rectTransform.Pin(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, 70), new Vector2(1200, 44));
-            float y = -40;
+
+            float y = -10;
+            bool canRevive = AdsManager.Instance != null && AdsManager.Instance.RewardedReady && !GameManager.I.ReviveUsed;
+            if (canRevive)
+            {
+                var revive = UI.Btn(canvas.transform, "REVIVE  ·  WATCH AD", WatchForRevive, 28, true);
+                ((RectTransform)revive.transform).Pin(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, y), new Vector2(500, 72));
+                y -= 92;
+            }
             if (SaveSystem.HasSave)
             {
-                var b1 = UI.Btn(canvas.transform, "LOAD LAST SAVE", () => GameManager.I.ReloadLastSave(), 28, true);
-                ((RectTransform)b1.transform).Pin(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, y), new Vector2(420, 70)); y -= 90;
+                var load = UI.Btn(canvas.transform, "LOAD LAST SAVE", LoadLastSave, 28, !canRevive);
+                ((RectTransform)load.transform).Pin(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, y), new Vector2(460, 70));
+                y -= 88;
             }
-            var b2 = UI.Btn(canvas.transform, "MAIN MENU", () => GameManager.I.QuitToMenu(false), 28);
-            ((RectTransform)b2.transform).Pin(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, y), new Vector2(420, 70));
+            var menu = UI.Btn(canvas.transform, "MAIN MENU", ReturnToMenu, 28);
+            ((RectTransform)menu.transform).Pin(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, y), new Vector2(460, 70));
+            y -= 76;
+
+            _deathStatus = UI.Label(canvas.transform, "", 22, UI.Dim, TextAnchor.MiddleCenter);
+            _deathStatus.rectTransform.Pin(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, y), new Vector2(900, 40));
+
             Tween.Fade(g, 1, 1.4f, 1.2f);
             title.transform.localScale = Vector3.one * 1.15f; Tween.Scale(title.transform, Vector3.one, 2.5f, Ease.OutCubic, 1.2f);
+            if (AdsManager.Instance != null) AdsManager.Instance.ShowBanner();
+        }
+
+        void WatchForRevive()
+        {
+            if (_reviveBusy || AdsManager.Instance == null) return;
+            _reviveBusy = true;
+            if (_deathStatus != null) _deathStatus.text = "Loading ad...";
+            AdsManager.Instance.ShowRewarded(ok =>
+            {
+                _reviveBusy = false;
+                if (ok) GameManager.I.ReviveFromAd();
+                else if (_deathStatus != null) _deathStatus.text = "No ad available right now. Try again in a moment.";
+            });
+        }
+
+        void LoadLastSave()
+        {
+            if (AdsManager.Instance != null) AdsManager.Instance.MaybeShowInterstitial(() => GameManager.I.ReloadLastSave());
+            else GameManager.I.ReloadLastSave();
+        }
+
+        void ReturnToMenu()
+        {
+            if (AdsManager.Instance != null) AdsManager.Instance.MaybeShowInterstitial(() => GameManager.I.QuitToMenu(false));
+            else GameManager.I.QuitToMenu(false);
+        }
+
+        public void HideDeath()
+        {
+            if (_death != null) { Destroy(_death.gameObject); _death = null; }
+            _deathStatus = null; _reviveBusy = false;
+            Tween.Fade(_root, 1, 0.5f);
         }
     }
 }

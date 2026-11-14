@@ -219,5 +219,14 @@ namespace LastShore
                 Cam.transform.localRotation = Quaternion.Slerp(r0, Quaternion.Euler(-30f, 0, 70f), v);
             }, Ease.InQuad, 0, null, false);
         }
+
+        public void Revive()
+        {
+            _lying = false;
+            Hand.gameObject.SetActive(true);
+            Cam.transform.localPosition = _camBase;
+            Cam.transform.localRotation = Quaternion.identity;
+            _pitch = 0; _vy = 0; _shake = 0; _fovKick = 0;
+        }
     }
 }

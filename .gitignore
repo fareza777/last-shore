@@ -24,3 +24,9 @@
 /Survival Fable 62Source*
 *.blend1
 Source/Downloads/
+
+# signing material
+*.keystore
+*.jks
+keystore.properties
+

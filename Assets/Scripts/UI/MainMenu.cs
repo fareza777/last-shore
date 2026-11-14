@@ -8,15 +8,19 @@ namespace LastShore
     public class MainMenu : MonoBehaviour
     {
         Canvas _canvas; RectTransform _safe, _column; GameObject _modal;
+        Coroutine _storePoll; Text _removeAdsLabel, _storePrice, _storeStatus;
+        Button _storeBuy, _storeRestore;
 
         void Start()
         {
             Time.timeScale = 1; AudioListener.pause = false;
             Cursor.lockState = CursorLockMode.None; Cursor.visible = true;
             GameSettings.Load();
+            Monetization.Init();
             var a = AudioManager.I; a.StopAllLayers();
             a.SetLayer("ocean", 0.7f); a.SetLayer("wind", 0.3f); a.SetLayer("fire", 0.45f); a.SetLayer("night", 0.25f);
             Build();
+            Monetization.Ads.ShowBanner();
         }
 
         void Build()
@@ -47,6 +51,7 @@ namespace LastShore
             var row = UI.Rect("Row", _column).Pin(new Vector2(0, 1), new Vector2(0, 1), new Vector2(0, y - 24), new Vector2(700, 60));
             SmallButton(row, "RATE", 0, OpenRate); SmallButton(row, "SHARE", 1, Share);
             if (!Application.isMobilePlatform) SmallButton(row, "QUIT", 2, Application.Quit);
+            RemoveAdsButton(row, Application.isMobilePlatform ? 2 : 3);
             Appear(row, 0.75f + i * 0.09f);
 
             var ver = UI.Label(_safe, "v" + Application.version + "   ·   " + GameSettings.Studio, 18, UI.Dim, TextAnchor.LowerRight);
@@ -77,6 +82,13 @@ namespace LastShore
             ((RectTransform)b.transform).Pin(new Vector2(0, 0.5f), new Vector2(0, 0.5f), new Vector2(6 + index * 150, 0), new Vector2(138, 52));
         }
 
+        void RemoveAdsButton(RectTransform row, int index)
+        {
+            var b = UI.Btn(row, IapManager.RemoveAds ? "ADS REMOVED" : "REMOVE ADS", OpenRemoveAds, 20);
+            ((RectTransform)b.transform).Pin(new Vector2(0, 0.5f), new Vector2(0, 0.5f), new Vector2(6 + index * 150, 0), new Vector2(200, 52));
+            _removeAdsLabel = b.GetComponentInChildren<Text>();
+        }
+
         // ---------------------------------------------------------------- modals
         RectTransform Modal(Vector2 size, string title)
         {
@@ -94,10 +106,18 @@ namespace LastShore
                 var line = UI.Img(rt, null, UI.Accent, "Line"); line.rectTransform.Pin(new Vector2(0.5f, 1), new Vector2(0.5f, 0.5f), new Vector2(0, -98), new Vector2(140, 3));
             }
             _column.gameObject.SetActive(false);
+            Monetization.Ads?.HideBanner();
             return rt;
         }
 
-        void CloseModal() { if (_modal != null) Destroy(_modal); _modal = null; if (_column != null) _column.gameObject.SetActive(true); }
+        void CloseModal()
+        {
+            if (_storePoll != null) { StopCoroutine(_storePoll); _storePoll = null; }
+            if (_modal != null) Destroy(_modal);
+            _modal = null; _storeBuy = null; _storeRestore = null; _storePrice = null; _storeStatus = null;
+            if (_column != null) _column.gameObject.SetActive(true);
+            Monetization.Ads?.ShowBanner();
+        }
 
         Button ModalButton(RectTransform panel, string label, float x, bool primary, Action onClick, float width = 260)
         {
@@ -132,6 +152,7 @@ namespace LastShore
             var rt = SettingsPanel.Build(_modal.transform, CloseModal);
             rt.localScale = Vector3.one * 0.92f; Tween.Scale(rt, Vector3.one, 0.3f, Ease.OutBack);
             _column.gameObject.SetActive(false);
+            Monetization.Ads?.HideBanner();
         }
 
         void OpenAbout()
@@ -146,6 +167,54 @@ namespace LastShore
                 "<color=#F2B45A>MADE WITH</color>\nUnity  ·  Blender";
             var t = UI.Label(p, body, 24, UI.TextCol, TextAnchor.UpperCenter); t.rectTransform.Stretch(70, 120, 70, 124); t.lineSpacing = 1.15f;
             ModalButton(p, "CLOSE", 0, true, CloseModal);
+        }
+
+        void OpenRemoveAds()
+        {
+            var p = Modal(new Vector2(920, 620), "REMOVE ADS");
+            var body = UI.Label(p,
+                "Hide every banner and interstitial for good.\nRewarded ads stay optional: you choose when to watch one.",
+                25, UI.TextCol, TextAnchor.MiddleCenter);
+            body.rectTransform.Pin(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, 160), new Vector2(800, 80));
+
+            _storePrice = UI.Label(p, IapManager.RemoveAds ? "OWNED" : IapManager.PriceText, 62, UI.Accent, TextAnchor.MiddleCenter, FontStyle.Bold, true);
+            _storePrice.rectTransform.Pin(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, 62), new Vector2(740, 84));
+
+            var caption = UI.Label(p, UI.Spaced("ONE-TIME PURCHASE", 2), 20, UI.Dim, TextAnchor.MiddleCenter);
+            caption.rectTransform.Pin(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, 8), new Vector2(740, 30));
+
+            _storeStatus = UI.Label(p, "", 21, UI.Dim, TextAnchor.MiddleCenter);
+            _storeStatus.rectTransform.Pin(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, -52), new Vector2(820, 62));
+
+            _storeBuy = ModalButton(p, "BUY", -260, true, () => IapManager.Purchase(), 240);
+            _storeRestore = ModalButton(p, "RESTORE", 0, false, () => IapManager.Restore(), 240);
+            ModalButton(p, "CLOSE", 260, false, CloseModal, 240);
+
+            _storePoll = StartCoroutine(PollStore());
+            RefreshStore();
+        }
+
+        IEnumerator PollStore()
+        {
+            while (_modal != null) { RefreshStore(); yield return new WaitForSecondsRealtime(0.25f); }
+        }
+
+        void RefreshStore()
+        {
+            if (_storePrice == null) return;
+            bool owned = IapManager.RemoveAds;
+            _storePrice.text = owned ? "OWNED" : IapManager.PriceText;
+            if (_removeAdsLabel != null) _removeAdsLabel.text = owned ? "ADS REMOVED" : "REMOVE ADS";
+            if (_storeBuy != null) _storeBuy.gameObject.SetActive(!owned);
+            if (_storeRestore != null) _storeRestore.gameObject.SetActive(!owned);
+            if (_storeStatus != null)
+            {
+                if (owned) _storeStatus.text = "Banners and interstitials are off. Thank you.";
+                else if (IapManager.Busy) _storeStatus.text = "Opening Google Play...";
+                else if (!string.IsNullOrEmpty(IapManager.Message)) _storeStatus.text = IapManager.Message;
+                else if (!IapManager.StoreReady) _storeStatus.text = "Connecting to Google Play...";
+                else _storeStatus.text = "Restore it any time on a new device.";
+            }
         }
 
         void OpenRate()

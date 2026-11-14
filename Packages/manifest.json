@@ -36,6 +36,8 @@
     "com.unity.modules.vr": "1.0.0",
     "com.unity.modules.wind": "1.0.0",
     "com.unity.modules.xr": "1.0.0",
+    "com.google.ads.mobile": "11.7.0",
+    "com.unity.external-dependency-manager": "2.1.1",
     "com.ivanmurzak.unity.mcp": "0.93.4"
   },
   "scopedRegistries": [
@@ -43,6 +45,7 @@
       "name": "package.openupm.com",
       "url": "https://package.openupm.com",
       "scopes": [
+        "com.google.ads.mobile",
         "com.ivanmurzak",
         "extensions.unity"
       ]

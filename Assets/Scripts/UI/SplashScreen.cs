@@ -13,6 +13,8 @@ namespace LastShore
         IEnumerator Start()
         {
             GameSettings.Load();
+            Monetization.Init();
+            Monetization.Ads.HideBanner();
             var canvas = UI.MakeCanvas("Splash", 5);
             var bg = UI.Img(canvas.transform, null, UI.Hex("05090D"), "Bg", true); bg.rectTransform.Stretch();
             var glow = UI.Img(canvas.transform, UI.Glow, UI.Hex("F2B45A", 0.0f), "Glow"); glow.rectTransform.Pin(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(1400, 900));
